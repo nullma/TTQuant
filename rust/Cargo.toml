@@ -1,0 +1,24 @@
+[workspace]
+members = ["common", "market-data", "gateway"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["TTQuant Team"]
+
+[workspace.dependencies]
+tokio = { version = "1.35", features = ["full"] }
+zmq = "0.10"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+prost = "0.12"
+prost-types = "0.12"
+anyhow = "1.0"
+thiserror = "1.0"
+tracing = "0.1"
+tracing-subscriber = "0.3"
+sqlx = { version = "0.7", features = ["runtime-tokio-native-tls", "postgres", "chrono"] }
+chrono = "0.4"
+crossbeam-channel = "0.5"
+bumpalo = "3.14"

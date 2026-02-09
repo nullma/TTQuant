@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package ttquant;
+
+// 行情数据
+message MarketData {
+  string symbol = 1;
+  double last_price = 2;
+  double volume = 3;
+  int64 exchange_time = 4;  // 交易所时间戳（纳秒）
+  int64 local_time = 5;     // 本地接收时间戳（纳秒）
+  string exchange = 6;      // 交易所名称
+}
+
+// 订单
+message Order {
+  string order_id = 1;
+  string strategy_id = 2;
+  string symbol = 3;
+  double price = 4;
+  int32 volume = 5;
+  string side = 6;          // BUY/SELL
+  int64 timestamp = 7;      // 订单生成时间戳（纳秒）
+}
+
+// 成交回报
+message Trade {
+  string trade_id = 1;
+  string order_id = 2;
+  string strategy_id = 3;
+  string symbol = 4;
+  string side = 5;
+  double filled_price = 6;
+  int32 filled_volume = 7;
+  int64 trade_time = 8;
+  string status = 9;        // FILLED / REJECTED
+  int32 error_code = 10;    // 错误码（仅 REJECTED 时有效）
+  string error_message = 11;
+  bool is_retryable = 12;   // 是否可重试
+  double commission = 13;   // 手续费
+}
+
+// 性能指标
+message Metrics {
+  string component = 1;     // md-binance / gateway / strategy
+  int64 p99_latency_ns = 2;
+  int64 msg_count = 3;
+  int64 timestamp = 4;
+}
