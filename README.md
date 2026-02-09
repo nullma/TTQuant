@@ -94,6 +94,8 @@ docker compose -f docker/docker-compose.yml logs -f test-client
 - [系统设计文档](docs/plans/2026-02-10-ttquant-system-design.md) - 完整的架构设计
 - [Docker 部署指南](docs/DOCKER.md) - Docker 使用和故障排查
 - [快速开始指南](docs/QUICKSTART.md) - 本地开发环境搭建
+- [Gateway 模块文档](docs/GATEWAY.md) - 交易网关使用指南 🆕
+- [测试指南](docs/TESTING.md) - 测试清单和性能基准
 - [开发进度](docs/PROGRESS.md) - 实现进度跟踪
 
 ## 🛠️ 技术栈
@@ -108,19 +110,53 @@ docker compose -f docker/docker-compose.yml logs -f test-client
 
 ### 监控与运维
 
-- **Prometheus**: 指标采集
-- **Grafana**: 可视化
-- **Loki**: 日志聚合
+- **Prometheus**: 指标采集（待实现）
+- **Grafana**: 可视化（待实现）
+- **Loki**: 日志聚合（待实现）
 - **Docker Compose**: 容器编排
 
 ## 📊 性能指标
 
-- **延迟**: < 1ms（信号到订单）
-- **吞吐量**: > 10,000 msg/s（行情处理）
-- **可用性**: 99.9%
+- **延迟**: < 1ms（信号到订单，目标）
+- **吞吐量**: > 100 msg/s（行情处理，已验证）
+- **可用性**: 99.9%（目标）
 - **恢复时间**: < 3s（服务自愈）
 
+## 🎯 当前状态
+
+**项目进度**: 60% 完成
+
+### ✅ 已完成
+- 行情模块（Binance WebSocket）
+- 交易网关（订单提交、风控、成交回报）
+- Docker 部署（一键启动）
+- TimescaleDB 数据库
+- 完整文档体系
+
+### 🚧 进行中
+- Python 策略引擎
+- 回测框架
+- 监控系统
+
+### 📋 待实现
+- 更多交易所支持（OKX, Tushare）
+- 机器学习因子
+- 生产环境优化
+
 ## 🔧 开发
+
+### 测试 Gateway 模块
+
+```bash
+# 启动所有服务
+make up
+
+# 测试网关
+make test-gateway
+
+# 查看网关日志
+make logs-gateway
+```
 
 ### 构建 Rust 模块
 
@@ -129,21 +165,17 @@ cd rust
 cargo build --release
 ```
 
-### 运行 Python 策略
+### 运行 Python 测试
 
 ```bash
 cd python
 pip install -r requirements.txt
-python strategy/engine.py
+python test_market_data.py  # 测试行情接收
+python test_gateway.py      # 测试网关（需要 Docker）
+python simulate_system.py   # 系统模拟（无需 Docker）
 ```
 
-### 运行回测
-
-```bash
-python backtest/run_backtest.py --strategy EMA_Cross --start 2025-01-01 --end 2025-12-31
-```
-
-## 📝 策略示例
+## 📝 策略示例（待实现）
 
 ```python
 class EMACrossStrategy(BaseStrategy):
