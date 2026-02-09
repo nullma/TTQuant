@@ -9,12 +9,14 @@
 - [x] .gitignore
 - [x] .env.example
 - [x] 完整设计文档
+- [x] Makefile（开发命令）
 
 ### 2. Rust Common 库
 - [x] Protocol Buffers 定义（MarketData, Order, Trade, Metrics）
 - [x] ZeroMQ 封装（Publisher, Subscriber, Pusher, Puller）
 - [x] 时间工具函数
 - [x] 配置文件解析
+- [x] 单元测试
 
 ### 3. Market Data 模块
 - [x] Binance WebSocket 连接
@@ -22,6 +24,7 @@
 - [x] ZeroMQ 行情广播
 - [x] 心跳和重连机制
 - [x] 零拷贝优化（内存池）
+- [x] 错误处理和日志
 
 ### 4. 配置文件
 - [x] markets.toml（市场配置）
@@ -30,6 +33,23 @@
 ### 5. Python 测试工具
 - [x] test_market_data.py（行情接收测试）
 - [x] requirements.txt
+- [x] 统计和性能监控
+
+### 6. Docker 部署 🆕
+- [x] Dockerfile.rust（Rust 构建镜像）
+- [x] Dockerfile.python（Python 运行镜像）
+- [x] docker-compose.yml（服务编排）
+- [x] TimescaleDB 初始化脚本
+- [x] 部署脚本（deploy.sh）
+- [x] Makefile（简化命令）
+- [x] Docker 文档（DOCKER.md）
+
+### 7. 数据库
+- [x] TimescaleDB Schema（init.sql）
+- [x] Hypertable 配置
+- [x] 压缩策略
+- [x] 数据保留策略
+- [x] 视图和索引
 
 ## 🚧 待实现
 
@@ -51,37 +71,59 @@
 - [ ] BacktestDataSource（Polars + ConnectorX）
 - [ ] BacktestOrderGateway（滑点+手续费）
 
-### 4. 数据库
-- [ ] TimescaleDB Schema（init.sql）
-- [ ] 数据写入逻辑
+### 4. 更多市场支持
+- [ ] OKX WebSocket 实现
+- [ ] Tushare A股数据接入
 
-### 5. Docker 部署
-- [ ] Dockerfile.rust
-- [ ] Dockerfile.python
-- [ ] docker-compose.yml
-
-### 6. 监控系统
+### 5. 监控系统
 - [ ] Prometheus 配置
 - [ ] Grafana Dashboard
 - [ ] 告警规则
+- [ ] AlertManager
+
+### 6. 生产优化
+- [ ] 健康检查端点
+- [ ] 性能指标上报
+- [ ] 日志结构化
+- [ ] 配置热重载
 
 ## 📝 下一步
 
-1. **测试 Market Data 模块**
-   ```bash
-   cd rust
-   cargo build --release
-   MARKET=binance ZMQ_PUB_ENDPOINT=tcp://*:5555 ./target/release/market-data
-   ```
+### 立即可测试 ✅
 
-2. **实现 Gateway 模块**
+```bash
+# 1. 构建并启动服务
+make build
+make up
+
+# 2. 查看实时行情
+make logs-test
+
+# 3. 连接数据库查看数据
+docker exec -it ttquant-timescaledb psql -U ttquant -d ttquant_trading
+```
+
+### 开发优先级
+
+1. **测试当前系统** ⭐⭐⭐
+   - 验证 Docker 部署
+   - 测试行情接收性能
+   - 检查数据库写入
+
+2. **实现 Gateway 模块** ⭐⭐⭐
    - 订单接收和风控
-   - 交易所 API 对接
+   - 交易所 API 对接（模拟模式）
 
-3. **实现 Python 策略引擎**
-   - BaseStrategy 和示例策略
+3. **实现 Python 策略引擎** ⭐⭐
+   - BaseStrategy 抽象
+   - 简单的 EMA 交叉策略
+
+4. **完善监控** ⭐
+   - Prometheus + Grafana
+   - 性能指标可视化
 
 ---
 
-**当前进度**: 约 30% 完成
-**预计完成时间**: 需要继续实现核心交易逻辑
+**当前进度**: 约 45% 完成（核心基础设施已就绪）
+**可运行状态**: ✅ 是（行情模块可独立运行）
+**生产就绪**: ❌ 否（需要完成交易和风控模块）

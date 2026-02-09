@@ -37,41 +37,64 @@
 
 ### 前置要求
 
-- Docker & Docker Compose
-- Rust 1.75+
-- Python 3.11+
+- Docker 20.10+
+- Docker Compose 2.0+
 
-### 1. 克隆项目
-
-```bash
-git clone https://github.com/yourusername/TTQuant.git
-cd TTQuant
-```
-
-### 2. 配置环境变量
+### 方法 1: 使用 Makefile（推荐）
 
 ```bash
-cp .env.example .env
-# 编辑 .env 文件，填入你的 API 密钥
+# 构建镜像
+make build
+
+# 启动服务
+make up
+
+# 查看行情日志
+make logs-md
+
+# 查看测试客户端
+make logs-test
+
+# 停止服务
+make down
 ```
 
-### 3. 启动系统
+### 方法 2: 使用部署脚本
 
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
 ```
 
-### 4. 访问监控面板
+### 方法 3: 手动 Docker Compose
 
-- **Grafana**: http://localhost:3000 (admin / 你的密码)
-- **Prometheus**: http://localhost:9090
+```bash
+docker compose -f docker/docker-compose.yml up -d
+docker compose -f docker/docker-compose.yml logs -f
+```
+
+### 验证部署
+
+```bash
+# 查看服务状态
+docker compose -f docker/docker-compose.yml ps
+
+# 查看实时行情
+docker compose -f docker/docker-compose.yml logs -f test-client
+```
+
+你应该看到：
+```
+[    10] md.BTCUSDT.binance          | Rate: 5.2 msg/s
+[    20] md.ETHUSDT.binance          | Rate: 6.1 msg/s
+```
 
 ## 📖 文档
 
-- [系统设计文档](docs/plans/2026-02-10-ttquant-system-design.md)
-- [API 文档](docs/api/)
-- [策略开发指南](docs/strategy-guide.md)
+- [系统设计文档](docs/plans/2026-02-10-ttquant-system-design.md) - 完整的架构设计
+- [Docker 部署指南](docs/DOCKER.md) - Docker 使用和故障排查
+- [快速开始指南](docs/QUICKSTART.md) - 本地开发环境搭建
+- [开发进度](docs/PROGRESS.md) - 实现进度跟踪
 
 ## 🛠️ 技术栈
 
