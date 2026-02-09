@@ -38,7 +38,7 @@ COPY rust/ rust/
 RUN cd rust && cargo build --release
 
 # 运行时镜像
-FROM debian:bookworm
+FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y \
     libzmq5 \
