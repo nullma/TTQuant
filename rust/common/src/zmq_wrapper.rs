@@ -14,7 +14,6 @@ impl ZmqPublisher {
         socket.bind(endpoint)?;
 
         // 性能优化配置
-        socket.set_tcp_nodelay(true)?;
         socket.set_sndhwm(1000)?;
 
         Ok(Self { socket })
@@ -47,7 +46,6 @@ impl ZmqSubscriber {
         }
 
         // 性能优化配置
-        socket.set_tcp_nodelay(true)?;
         socket.set_rcvhwm(1000)?;
 
         Ok(Self { socket })
@@ -94,7 +92,6 @@ impl ZmqPusher {
         let context = zmq::Context::new();
         let socket = context.socket(zmq::PUSH)?;
         socket.connect(endpoint)?;
-        socket.set_tcp_nodelay(true)?;
         socket.set_sndhwm(1000)?;
 
         Ok(Self { socket })
@@ -118,7 +115,6 @@ impl ZmqPuller {
         let context = zmq::Context::new();
         let socket = context.socket(zmq::PULL)?;
         socket.bind(endpoint)?;
-        socket.set_tcp_nodelay(true)?;
         socket.set_rcvhwm(1000)?;
 
         Ok(Self { socket })
