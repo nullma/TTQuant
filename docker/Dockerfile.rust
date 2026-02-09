@@ -14,6 +14,8 @@ WORKDIR /build
 # 复制 Cargo 文件
 COPY rust/Cargo.toml rust/Cargo.toml
 COPY rust/common/Cargo.toml rust/common/Cargo.toml
+COPY rust/common/build.rs rust/common/build.rs
+COPY rust/common/proto/ rust/common/proto/
 COPY rust/market-data/Cargo.toml rust/market-data/Cargo.toml
 COPY rust/gateway/Cargo.toml rust/gateway/Cargo.toml
 
