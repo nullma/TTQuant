@@ -50,7 +50,7 @@ async fn connect_and_stream(publisher: &ZmqPublisher, subscribe_msg: &str) -> Re
     let mut heartbeat = interval(Duration::from_secs(20));
 
     // 内存池
-    let arena = Bump::new();
+    let mut arena = Bump::new();
 
     loop {
         tokio::select! {
