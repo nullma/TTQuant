@@ -1,0 +1,9 @@
+zmq==25.1.2
+protobuf==4.25.1
+numpy==1.26.3
+pandas==2.1.4
+polars==0.20.3
+connectorx==0.3.2
+sqlalchemy==2.0.25
+psycopg2-binary==2.9.9
+pyyaml==6.0.1
