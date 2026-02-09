@@ -5,6 +5,8 @@ use sha2::Sha256;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::future::Future;
+use std::pin::Pin;
 use tracing::{info, warn, error};
 
 use common::proto::{Order, Trade};
@@ -171,20 +173,22 @@ impl Exchange for BinanceExchange {
         }
     }
 
-    async fn submit_order(&self, order: &Order) -> Result<Trade> {
-        // If API credentials are not set, use simulation mode
-        if self.api_key.is_empty() || self.api_secret.is_empty() {
-            return Ok(self.simulate_order(order));
-        }
-
-        // Try real order submission
-        match self.submit_real_order(order).await {
-            Ok(trade) => Ok(trade),
-            Err(e) => {
-                error!("Failed to submit real order: {}", e);
-                warn!("Falling back to simulation mode");
-                Ok(self.simulate_order(order))
+    fn submit_order<'a>(&'a self, order: &'a Order) -> Pin<Box<dyn Future<Output = Result<Trade>> + Send + 'a>> {
+        Box::pin(async move {
+            // If API credentials are not set, use simulation mode
+            if self.api_key.is_empty() || self.api_secret.is_empty() {
+                return Ok(self.simulate_order(order));
             }
-        }
+
+            // Try real order submission
+            match self.submit_real_order(order).await {
+                Ok(trade) => Ok(trade),
+                Err(e) => {
+                    error!("Failed to submit real order: {}", e);
+                    warn!("Falling back to simulation mode");
+                    Ok(self.simulate_order(order))
+                }
+            }
+        })
     }
 }

@@ -1,5 +1,7 @@
 use anyhow::{Result, anyhow};
 use tracing::{info, error};
+use std::future::Future;
+use std::pin::Pin;
 
 use common::proto::{Order, Trade};
 
@@ -9,7 +11,7 @@ use binance::BinanceExchange;
 
 pub trait Exchange: Send + Sync {
     fn name(&self) -> &str;
-    fn submit_order(&self, order: &Order) -> impl std::future::Future<Output = Result<Trade>> + Send;
+    fn submit_order<'a>(&'a self, order: &'a Order) -> Pin<Box<dyn Future<Output = Result<Trade>> + Send + 'a>>;
 }
 
 pub struct ExchangeRouter {
