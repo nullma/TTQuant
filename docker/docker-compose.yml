@@ -1,0 +1,77 @@
+version: '3.8'
+
+# 全局日志配置
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "100m"
+    max-file: "3"
+
+services:
+  # ==================== 数据库 ====================
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: ttquant-timescaledb
+    restart: always
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ttquant
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ttquant_trading
+    ports:
+      - "5432:5432"
+    volumes:
+      - tsdb-data:/var/lib/postgresql/data
+      - ../sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ttquant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ttquant-network
+
+  # ==================== 行情模块 ====================
+  md-binance:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rust
+    container_name: ttquant-md-binance
+    restart: always
+    logging: *default-logging
+    environment:
+      MARKET: binance
+      ZMQ_PUB_ENDPOINT: tcp://*:5555
+      DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
+      RUST_LOG: info
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    ports:
+      - "5555:5555"
+      - "8080:8080"
+    networks:
+      - ttquant-network
+
+  # ==================== Python 测试客户端 ====================
+  test-client:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.python
+    container_name: ttquant-test-client
+    logging: *default-logging
+    environment:
+      ZMQ_MD_ENDPOINTS: tcp://md-binance:5555
+    depends_on:
+      - md-binance
+    command: python test_market_data.py
+    networks:
+      - ttquant-network
+
+volumes:
+  tsdb-data:
+
+networks:
+  ttquant-network:
+    name: ttquant-network
+    driver: bridge
