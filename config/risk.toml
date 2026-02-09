@@ -1,0 +1,13 @@
+[position_limits]
+BTCUSDT = 10
+ETHUSDT = 100
+BNBUSDT = 1000
+
+[rate_limits]
+max_orders_per_second = 100
+max_orders_per_strategy_per_second = 10
+
+[order_validation]
+max_order_age_ms = 500
+min_price = 0.01
+max_price = 1000000.0

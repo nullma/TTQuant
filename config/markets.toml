@@ -1,0 +1,16 @@
+[binance]
+ws_url = "wss://stream.binance.com:9443/ws"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT"]
+heartbeat_interval_secs = 20
+reconnect_backoff_ms = [100, 500, 2000, 10000, 30000]
+
+[okx]
+ws_url = "wss://ws.okx.com:8443/ws/v5/public"
+symbols = ["BTC-USDT", "ETH-USDT"]
+heartbeat_interval_secs = 15
+reconnect_backoff_ms = [100, 500, 2000, 10000, 30000]
+
+[tushare]
+# A股数据源配置
+# 需要 TUSHARE_TOKEN 环境变量
+symbols = ["000001.SZ", "600000.SH"]
