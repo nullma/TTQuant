@@ -1,0 +1,32 @@
+[package]
+name = "gateway"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "gateway"
+path = "src/main.rs"
+
+[dependencies]
+common = { path = "../common" }
+tokio.workspace = true
+zmq.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+prost.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+sqlx.workspace = true
+chrono.workspace = true
+crossbeam-channel.workspace = true
+
+# Additional dependencies for Gateway
+reqwest = { version = "0.11", features = ["json"] }
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+toml = "0.8"
+dashmap = "5.5"

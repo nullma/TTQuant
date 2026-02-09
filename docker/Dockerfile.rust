@@ -45,6 +45,7 @@ WORKDIR /app
 
 # 从构建镜像复制二进制文件
 COPY --from=builder /build/rust/target/release/market-data /app/market-data
+COPY --from=builder /build/rust/target/release/gateway /app/gateway
 
 # 复制配置文件
 COPY config/ /app/config/
@@ -53,4 +54,5 @@ COPY config/ /app/config/
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-ENTRYPOINT ["/app/market-data"]
+# 使用环境变量决定运行哪个服务
+CMD if [ "$MARKET" != "" ]; then /app/market-data; else /app/gateway; fi

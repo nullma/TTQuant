@@ -26,16 +26,27 @@
 - [x] 零拷贝优化（内存池）
 - [x] 错误处理和日志
 
-### 4. 配置文件
+### 4. Gateway 模块 🆕
+- [x] 订单接收（ZMQ PULL）
+- [x] 风控检查（持仓、价格、频率）
+- [x] 交易所路由（Binance）
+- [x] 成交回报广播（ZMQ PUB）
+- [x] 模拟交易模式
+- [x] 错误处理和重试逻辑
+- [x] 持仓管理
+
+### 5. 配置文件
 - [x] markets.toml（市场配置）
 - [x] risk.toml（风控配置）
 
-### 5. Python 测试工具
+### 6. Python 测试工具
 - [x] test_market_data.py（行情接收测试）
+- [x] test_gateway.py（网关测试）🆕
+- [x] simulate_system.py（系统模拟）
 - [x] requirements.txt
 - [x] 统计和性能监控
 
-### 6. Docker 部署 🆕
+### 7. Docker 部署
 - [x] Dockerfile.rust（Rust 构建镜像）
 - [x] Dockerfile.python（Python 运行镜像）
 - [x] docker-compose.yml（服务编排）
@@ -43,49 +54,54 @@
 - [x] 部署脚本（deploy.sh）
 - [x] Makefile（简化命令）
 - [x] Docker 文档（DOCKER.md）
+- [x] Gateway 服务配置 🆕
 
-### 7. 数据库
+### 8. 数据库
 - [x] TimescaleDB Schema（init.sql）
 - [x] Hypertable 配置
 - [x] 压缩策略
 - [x] 数据保留策略
 - [x] 视图和索引
 
+### 9. 文档
+- [x] 系统设计文档
+- [x] Docker 部署指南
+- [x] 快速开始指南
+- [x] 测试指南
+- [x] Gateway 模块文档 🆕
+- [x] 进度跟踪
+- [x] 测试报告
+- [x] 项目总结
+
 ## 🚧 待实现
 
-### 1. Gateway 模块（交易柜台）
-- [ ] 订单接收（ZMQ PULL）
-- [ ] 风控检查
-- [ ] 交易所 API 对接
-- [ ] 成交回报广播
-- [ ] 数据库异步写入
-
-### 2. Python 策略引擎
+### 1. Python 策略引擎
 - [ ] BaseStrategy 抽象类
 - [ ] StrategyEngine 核心
 - [ ] 示例策略（EMA Cross）
 - [ ] 持仓管理
 
-### 3. 回测框架
+### 2. 回测框架
 - [ ] BacktestEngine
 - [ ] BacktestDataSource（Polars + ConnectorX）
 - [ ] BacktestOrderGateway（滑点+手续费）
 
-### 4. 更多市场支持
+### 3. 更多市场支持
 - [ ] OKX WebSocket 实现
 - [ ] Tushare A股数据接入
 
-### 5. 监控系统
+### 4. 监控系统
 - [ ] Prometheus 配置
 - [ ] Grafana Dashboard
 - [ ] 告警规则
 - [ ] AlertManager
 
-### 6. 生产优化
+### 5. 生产优化
 - [ ] 健康检查端点
 - [ ] 性能指标上报
 - [ ] 日志结构化
 - [ ] 配置热重载
+- [ ] 数据库写入（行情和交易）
 
 ## 📝 下一步
 
@@ -97,26 +113,33 @@ make build
 make up
 
 # 2. 查看实时行情
-make logs-test
+make logs-md
 
-# 3. 连接数据库查看数据
+# 3. 测试网关模块
+make test-gateway
+
+# 4. 查看网关日志
+make logs-gateway
+
+# 5. 连接数据库查看数据
 docker exec -it ttquant-timescaledb psql -U ttquant -d ttquant_trading
 ```
 
 ### 开发优先级
 
-1. **测试当前系统** ⭐⭐⭐
-   - 验证 Docker 部署
-   - 测试行情接收性能
-   - 检查数据库写入
+1. **测试 Gateway 模块** ⭐⭐⭐
+   - 验证订单提交和成交回报
+   - 测试风控规则
+   - 测试模拟交易模式
 
-2. **实现 Gateway 模块** ⭐⭐⭐
-   - 订单接收和风控
-   - 交易所 API 对接（模拟模式）
-
-3. **实现 Python 策略引擎** ⭐⭐
+2. **实现 Python 策略引擎** ⭐⭐⭐
    - BaseStrategy 抽象
    - 简单的 EMA 交叉策略
+   - 与 Gateway 集成
+
+3. **实现数据库写入** ⭐⭐
+   - 行情数据持久化
+   - 订单和成交记录
 
 4. **完善监控** ⭐
    - Prometheus + Grafana
@@ -124,6 +147,6 @@ docker exec -it ttquant-timescaledb psql -U ttquant -d ttquant_trading
 
 ---
 
-**当前进度**: 约 45% 完成（核心基础设施已就绪）
-**可运行状态**: ✅ 是（行情模块可独立运行）
-**生产就绪**: ❌ 否（需要完成交易和风控模块）
+**当前进度**: 约 60% 完成（核心交易链路已打通）
+**可运行状态**: ✅ 是（行情 + 交易模块可独立运行）
+**生产就绪**: ⚠️ 部分（需要完成策略引擎和监控）
