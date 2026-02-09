@@ -3,7 +3,7 @@ use tracing::{info, error};
 use std::future::Future;
 use std::pin::Pin;
 
-use common::proto::{Order, Trade};
+use ttquant_common::proto::{Order, Trade};
 
 mod binance;
 

@@ -9,7 +9,7 @@ use std::future::Future;
 use std::pin::Pin;
 use tracing::{info, warn, error};
 
-use common::proto::{Order, Trade};
+use ttquant_common::proto::{Order, Trade};
 use super::Exchange;
 
 type HmacSha256 = Hmac<Sha256>;

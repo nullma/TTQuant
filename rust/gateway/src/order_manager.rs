@@ -3,8 +3,8 @@ use prost::Message;
 use tracing::{info, warn, error};
 use chrono::Utc;
 
-use common::proto::{Order, Trade};
-use common::zmq_wrapper::{ZmqPuller, ZmqPublisher};
+use ttquant_common::proto::{Order, Trade};
+use ttquant_common::zmq_wrapper::{ZmqPuller, ZmqPublisher};
 
 use super::risk::RiskManager;
 use super::exchange::ExchangeRouter;

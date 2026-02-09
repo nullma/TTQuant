@@ -7,7 +7,7 @@ use dashmap::DashMap;
 use chrono::{DateTime, Utc, Duration};
 use tracing::{info, warn};
 
-use common::proto::Order;
+use ttquant_common::proto::Order;
 
 #[derive(Debug, Deserialize)]
 pub struct RiskConfig {

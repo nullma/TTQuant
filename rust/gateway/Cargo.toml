@@ -9,7 +9,7 @@ name = "gateway"
 path = "src/main.rs"
 
 [dependencies]
-common = { path = "../common" }
+ttquant-common = { path = "../common" }
 tokio.workspace = true
 zmq.workspace = true
 serde.workspace = true
