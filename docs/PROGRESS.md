@@ -72,12 +72,21 @@
 - [x] ZMQ 通信集成
 - [x] 依赖注入设计（回测即实盘）
 
-### 10. 文档
+### 10. 端到端集成测试 🆕
+- [x] MockMarketDataPublisher（模拟行情发布）
+- [x] MockGateway（模拟订单处理和成交回报）
+- [x] 完整交易链路验证
+- [x] 61 秒测试运行（597 条行情，12 笔交易）
+- [x] 盈亏计算验证（$6,059.15）
+- [x] 测试报告（E2E_TEST_REPORT.md）
+
+### 11. 文档
 - [x] 系统设计文档
 - [x] Docker 部署指南
 - [x] 快速开始指南
 - [x] 测试指南
-- [x] Gateway 模块文档 🆕
+- [x] Gateway 模块文档
+- [x] 端到端测试报告 🆕
 - [x] 进度跟踪
 - [x] 测试报告
 - [x] 项目总结
@@ -131,10 +140,10 @@ docker exec -it ttquant-timescaledb psql -U ttquant -d ttquant_trading
 
 ### 开发优先级
 
-1. **端到端集成测试** ⭐⭐⭐
-   - 运行真实策略引擎连接 Gateway
-   - 验证完整交易流程
-   - 测试持仓和 PnL 计算
+1. **与真实 Gateway 集成** ⭐⭐⭐
+   - 启动 Docker 服务
+   - 连接真实的 Rust Gateway
+   - 验证 Protobuf vs JSON 通信
 
 2. **实现数据库写入** ⭐⭐
    - 行情数据持久化
@@ -152,6 +161,6 @@ docker exec -it ttquant-timescaledb psql -U ttquant -d ttquant_trading
 
 ---
 
-**当前进度**: 约 70% 完成（核心交易链路 + 策略引擎已完成）
-**可运行状态**: ✅ 是（行情 + 交易 + 策略全部可运行）
+**当前进度**: 约 75% 完成（核心交易链路 + 策略引擎 + 端到端测试已完成）
+**可运行状态**: ✅ 是（行情 + 交易 + 策略全部可运行，端到端测试通过）
 **生产就绪**: ⚠️ 部分（需要完成数据持久化和监控）
