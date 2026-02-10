@@ -42,7 +42,7 @@ scrape_configs:
         labels:
           service: 'market-data'
           exchange: 'binance'
-      - targets: ['md-okx:8080']
+      - targets: ['md-okx:8082']
         labels:
           service: 'market-data'
           exchange: 'okx'
@@ -54,11 +54,11 @@ scrape_configs:
   - job_name: 'gateway'
     scrape_interval: 5s
     static_configs:
-      - targets: ['gateway-binance:8080']
+      - targets: ['gateway-binance:8081']
         labels:
           service: 'gateway'
           exchange: 'binance'
-      - targets: ['gateway-okx:8080']
+      - targets: ['gateway-okx:8083']
         labels:
           service: 'gateway'
           exchange: 'okx'
@@ -102,13 +102,3 @@ scrape_configs:
 # 远程读取配置（可选）
 # remote_read:
 #   - url: "http://remote-storage:9009/api/v1/read"
-
-# 存储配置
-storage:
-  tsdb:
-    # 数据保留时间
-    retention.time: 30d
-    # 数据保留大小
-    retention.size: 50GB
-    # 压缩
-    wal_compression: true

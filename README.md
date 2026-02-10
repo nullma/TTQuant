@@ -40,37 +40,50 @@
 - Docker 20.10+
 - Docker Compose 2.0+
 
-### 方法 1: 使用 Makefile（推荐）
+### 方法 1: EC2 生产部署（推荐）⭐
+
+**适用场景**: 生产环境运行，避免本地网络限制
 
 ```bash
-# 构建镜像
-make build
+# 1. SSH 到您的 EC2 实例
+ssh -i your-key.pem ubuntu@<your-ec2-ip>
 
-# 启动服务
-make up
+# 2. 克隆代码
+git clone <your-repo-url> TTQuant
+cd TTQuant
 
-# 查看行情日志
-make logs-md
+# 3. 初始化环境（首次部署）
+bash deploy/ec2-setup.sh
+# 重新登录以使 Docker 权限生效
+exit && ssh -i your-key.pem ubuntu@<your-ec2-ip>
 
-# 查看测试客户端
-make logs-test
+# 4. 部署系统
+cd TTQuant
+bash deploy/ec2-deploy.sh
 
-# 停止服务
-make down
+# 5. 验证部署
+bash deploy/verify-okx.sh
 ```
 
-### 方法 2: 使用部署脚本
+**详细文档**: 查看 [deploy/START_HERE.md](deploy/START_HERE.md)
+
+### 方法 2: 本地开发环境
+
+**适用场景**: 本地开发和测试
+
+```bash
+# 使用 Makefile
+make build && make up
+
+# 或使用 Docker Compose
+docker compose -f docker/docker-compose.yml up -d
+```
+
+### 方法 3: 使用部署脚本
 
 ```bash
 chmod +x deploy.sh
 ./deploy.sh
-```
-
-### 方法 3: 手动 Docker Compose
-
-```bash
-docker compose -f docker/docker-compose.yml up -d
-docker compose -f docker/docker-compose.yml logs -f
 ```
 
 ### 验证部署
@@ -91,10 +104,17 @@ docker compose -f docker/docker-compose.yml logs -f test-client
 
 ## 📖 文档
 
+### 部署文档 🆕
+- [EC2 快速开始](deploy/START_HERE.md) - 3 步快速部署到 EC2 ⭐
+- [EC2 完整指南](deploy/README.md) - 详细的 EC2 部署文档
+- [5 分钟快速部署](deploy/QUICKSTART.md) - 最快的部署方式
+- [文件索引](deploy/INDEX.md) - 部署文件说明
+
+### 系统文档
 - [系统设计文档](docs/plans/2026-02-10-ttquant-system-design.md) - 完整的架构设计
 - [Docker 部署指南](docs/DOCKER.md) - Docker 使用和故障排查
 - [快速开始指南](docs/QUICKSTART.md) - 本地开发环境搭建
-- [Gateway 模块文档](docs/GATEWAY.md) - 交易网关使用指南 🆕
+- [Gateway 模块文档](docs/GATEWAY.md) - 交易网关使用指南
 - [测试指南](docs/TESTING.md) - 测试清单和性能基准
 - [开发进度](docs/PROGRESS.md) - 实现进度跟踪
 
@@ -127,21 +147,22 @@ docker compose -f docker/docker-compose.yml logs -f test-client
 **项目进度**: 60% 完成
 
 ### ✅ 已完成
-- 行情模块（Binance WebSocket）
+- 行情模块（Binance + OKX WebSocket）🆕
 - 交易网关（订单提交、风控、成交回报）
 - Docker 部署（一键启动）
+- EC2 生产部署方案 🆕
 - TimescaleDB 数据库
 - 完整文档体系
 
 ### 🚧 进行中
 - Python 策略引擎
 - 回测框架
-- 监控系统
+- 监控系统（Prometheus + Grafana）
 
 ### 📋 待实现
-- 更多交易所支持（OKX, Tushare）
+- 更多交易所支持（Tushare）
 - 机器学习因子
-- 生产环境优化
+- 高级风控策略
 
 ## 🔧 开发
 

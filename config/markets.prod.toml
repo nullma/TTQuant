@@ -1,0 +1,13 @@
+# TTQuant 生产环境行情配置
+
+[binance]
+ws_url = "wss://stream.binance.com:9443/ws"
+symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT"]
+heartbeat_interval_secs = 20
+reconnect_backoff_ms = [500, 2000, 5000, 15000, 30000, 60000]
+
+[okx]
+ws_url = "wss://ws.okx.com:8443/ws/v5/public"
+symbols = ["BTC-USDT", "ETH-USDT", "SOL-USDT"]
+heartbeat_interval_secs = 15
+reconnect_backoff_ms = [500, 2000, 5000, 15000, 30000, 60000]

@@ -1,167 +1,221 @@
-version: '3.8'
+# TTQuant 生产环境 Docker Compose
+# 用法: docker compose -f docker/docker-compose.prod.yml up -d
 
 # 全局日志配置
 x-logging: &default-logging
   driver: "json-file"
   options:
-    max-size: "100m"
-    max-file: "3"
+    max-size: "50m"
+    max-file: "5"
 
 services:
-  # ==================== 数据库 ====================
+  # ==================== 数据�?====================
   timescaledb:
     image: timescale/timescaledb:latest-pg16
     container_name: ttquant-timescaledb
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     environment:
       POSTGRES_USER: ttquant
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ttquant_trading
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432" # 仅本机访�?
     volumes:
       - tsdb-data:/var/lib/postgresql/data
       - ../sql/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ttquant"]
+      test: [ "CMD-SHELL", "pg_isready -U ttquant" ]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - ttquant-network
 
-  # ==================== 代理服务 ====================
-  proxy:
-    build:
-      context: .
-      dockerfile: Dockerfile.proxy
-    container_name: ttquant-proxy
-    restart: always
-    logging: *default-logging
-    ports:
-      - "8888:8080"
-    networks:
-      - ttquant-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-
-  # ==================== 行情模块 ====================
+  # ==================== Binance 行情 ====================
   md-binance:
     build:
       context: ..
       dockerfile: docker/Dockerfile.rust
     container_name: ttquant-md-binance
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     environment:
       MARKET: binance
       ZMQ_PUB_ENDPOINT: tcp://*:5555
-      DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
+      DB_URI: postgresql://ttquant:${DB_PASSWORD}@timescaledb:5432/ttquant_trading
+      METRICS_PORT: "8080"
       RUST_LOG: info
-      # 使用内部代理服务
-      HTTP_PROXY: http://proxy:8080
-      HTTPS_PROXY: http://proxy:8080
-      http_proxy: http://proxy:8080
-      https_proxy: http://proxy:8080
+      # Clash 代理配置（适配 Windows/macOS�?
+      HTTP_PROXY: http://198.18.0.1:7897
+      HTTPS_PROXY: http://198.18.0.1:7897
+      NO_PROXY: localhost,127.0.0.1,timescaledb
     depends_on:
       timescaledb:
         condition: service_healthy
-      proxy:
-        condition: service_started
     ports:
       - "5555:5555"
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - ttquant-network
 
+  # ==================== OKX 行情 ====================
   md-okx:
     build:
       context: ..
       dockerfile: docker/Dockerfile.rust
     container_name: ttquant-md-okx
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     environment:
       MARKET: okx
       ZMQ_PUB_ENDPOINT: tcp://*:5558
-      DB_URI: postgresql://ttquant:ttquant_local_2024@timescaledb:5432/ttquant_trading
-      RUST_LOG: info
+      DB_URI: postgresql://ttquant:${DB_PASSWORD}@timescaledb:5432/ttquant_trading
+      METRICS_PORT: "8080"
+      RUST_LOG: debug
+      # Clash 代理配置（适配 Windows/macOS�?
+      HTTP_PROXY: http://198.18.0.1:7897
+      HTTPS_PROXY: http://198.18.0.1:7897
+      NO_PROXY: localhost,127.0.0.1,timescaledb
     depends_on:
       timescaledb:
         condition: service_healthy
     ports:
       - "5558:5558"
-      - "8082:8080"
+      - "127.0.0.1:8082:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - ttquant-network
 
-  # ==================== 交易网关 ====================
+  # ==================== Binance 交易网关 ====================
   gateway-binance:
     build:
       context: ..
       dockerfile: docker/Dockerfile.rust
     container_name: ttquant-gateway-binance
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     environment:
       EXCHANGE: binance
       ZMQ_PULL_ENDPOINT: tcp://*:5556
       ZMQ_PUB_ENDPOINT: tcp://*:5557
-      BINANCE_TESTNET: "true"
-      BINANCE_API_KEY: ${BINANCE_API_KEY:-}
-      BINANCE_API_SECRET: ${BINANCE_API_SECRET:-}
-      DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
+      BINANCE_TESTNET: ${BINANCE_TESTNET:-false}
+      BINANCE_API_KEY: ${BINANCE_API_KEY}
+      BINANCE_API_SECRET: ${BINANCE_API_SECRET}
+      DB_URI: postgresql://ttquant:${DB_PASSWORD}@timescaledb:5432/ttquant_trading
+      METRICS_PORT: "8080"
       RUST_LOG: info
+      # Clash 代理配置
+      HTTP_PROXY: http://198.18.0.1:7897
+      HTTPS_PROXY: http://198.18.0.1:7897
+      NO_PROXY: localhost,127.0.0.1,timescaledb
     depends_on:
       timescaledb:
         condition: service_healthy
     ports:
       - "5556:5556"
       - "5557:5557"
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - ttquant-network
 
+  # ==================== OKX 交易网关 ====================
   gateway-okx:
     build:
       context: ..
       dockerfile: docker/Dockerfile.rust
     container_name: ttquant-gateway-okx
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     environment:
       EXCHANGE: okx
       ZMQ_PULL_ENDPOINT: tcp://*:5559
       ZMQ_PUB_ENDPOINT: tcp://*:5560
-      OKX_API_KEY: ${OKX_API_KEY:-}
-      OKX_SECRET_KEY: ${OKX_SECRET_KEY:-}
-      OKX_PASSPHRASE: ${OKX_PASSPHRASE:-}
-      OKX_TESTNET: "true"
-      DB_URI: postgresql://ttquant:ttquant_local_2024@timescaledb:5432/ttquant_trading
+      OKX_API_KEY: ${OKX_API_KEY}
+      OKX_SECRET_KEY: ${OKX_SECRET_KEY}
+      OKX_PASSPHRASE: ${OKX_PASSPHRASE}
+      OKX_TESTNET: ${OKX_TESTNET:-false}
+      DB_URI: postgresql://ttquant:${DB_PASSWORD}@timescaledb:5432/ttquant_trading
+      METRICS_PORT: "8080"
       RUST_LOG: info
+      # Clash 代理配置
+      HTTP_PROXY: http://198.18.0.1:7897
+      HTTPS_PROXY: http://198.18.0.1:7897
+      NO_PROXY: localhost,127.0.0.1,timescaledb
     depends_on:
       timescaledb:
         condition: service_healthy
     ports:
       - "5559:5559"
       - "5560:5560"
-      - "8083:8080"
+      - "127.0.0.1:8083:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - ttquant-network
 
-  # ==================== Python 测试客户端 ====================
-  test-client:
+  # ==================== Python 策略引擎 ====================
+  strategy-engine:
     build:
       context: ..
       dockerfile: docker/Dockerfile.python
-    container_name: ttquant-test-client
+    container_name: ttquant-strategy-engine
+    restart: unless-stopped
     logging: *default-logging
     environment:
-      ZMQ_MD_ENDPOINTS: tcp://md-binance:5555
+      ZMQ_MD_ENDPOINTS: tcp://md-binance:5555,tcp://md-okx:5558
+      ZMQ_TRADE_ENDPOINT: tcp://gateway-binance:5557
+      ZMQ_ORDER_ENDPOINT: tcp://gateway-binance:5556
+      PYTHONUNBUFFERED: "1"
     depends_on:
       - md-binance
-    command: python test_market_data.py
+      - gateway-binance
+    command: python -u -m strategy.engine
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
     networks:
       - ttquant-network
 
@@ -169,22 +223,25 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: ttquant-prometheus
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=30d'
-      - '--storage.tsdb.retention.size=50GB'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.size=10GB'
       - '--web.enable-lifecycle'
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - ../monitoring/alerts.yml:/etc/prometheus/alerts.yml
       - prometheus-data:/prometheus
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - ttquant-network
     depends_on:
@@ -194,20 +251,24 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: ttquant-grafana
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     environment:
       - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
-      - GF_INSTALL_PLUGINS=
-      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
     ports:
-      - "3000:3000"
+      - "3000:3000" # Grafana 面板需要外部访�?
     volumes:
       - grafana-data:/var/lib/grafana
       - ../monitoring/dashboards:/etc/grafana/provisioning/dashboards
       - ../monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - ttquant-network
     depends_on:
@@ -217,7 +278,7 @@ services:
   node-exporter:
     image: prom/node-exporter:latest
     container_name: ttquant-node-exporter
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     command:
       - '--path.procfs=/host/proc'
@@ -225,24 +286,34 @@ services:
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     ports:
-      - "9100:9100"
+      - "127.0.0.1:9100:9100"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - ttquant-network
 
-  # Postgres Exporter（数据库指标）
+  # Postgres Exporter（数据库指标�?
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: ttquant-postgres-exporter
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     environment:
-      DATA_SOURCE_NAME: "postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading?sslmode=disable"
+      DATA_SOURCE_NAME: "postgresql://ttquant:${DB_PASSWORD}@timescaledb:5432/ttquant_trading?sslmode=disable"
     ports:
-      - "9187:9187"
+      - "127.0.0.1:9187:9187"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - ttquant-network
     depends_on:
@@ -253,16 +324,21 @@ services:
   alertmanager:
     image: prom/alertmanager:latest
     container_name: ttquant-alertmanager
-    restart: always
+    restart: unless-stopped
     logging: *default-logging
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
     ports:
-      - "9093:9093"
+      - "127.0.0.1:9093:9093"
     volumes:
       - ../monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
       - alertmanager-data:/alertmanager
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
     networks:
       - ttquant-network
 
@@ -271,6 +347,7 @@ volumes:
   prometheus-data:
   grafana-data:
   alertmanager-data:
+
 
 networks:
   ttquant-network:

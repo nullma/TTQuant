@@ -252,3 +252,64 @@ groups:
         annotations:
           summary: "Slow database queries detected"
           description: "Query efficiency is low on {{ $labels.datname }}"
+
+  # ==================== OKX 专属告警 ====================
+  - name: okx_specific_alerts
+    interval: 30s
+    rules:
+      # OKX WebSocket 连接断开告警
+      - alert: OKXWebSocketDisconnected
+        expr: up{exchange="okx",service="market-data"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: market-data
+          exchange: okx
+        annotations:
+          summary: "OKX WebSocket 连接断开"
+          description: "OKX Market Data 服务已断开超过 2 分钟"
+
+      # OKX Gateway 服务断开告警
+      - alert: OKXGatewayDisconnected
+        expr: up{exchange="okx",service="gateway"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: gateway
+          exchange: okx
+        annotations:
+          summary: "OKX Gateway 服务断开"
+          description: "OKX Gateway 服务已断开超过 2 分钟"
+
+      # OKX 服务内存使用过高
+      - alert: OKXHighMemoryUsage
+        expr: process_resident_memory_bytes{exchange="okx"} > 100000000
+        for: 5m
+        labels:
+          severity: warning
+          exchange: okx
+        annotations:
+          summary: "OKX 服务内存使用过高"
+          description: "{{ $labels.service }} 内存使用超过 100MB: {{ $value | humanize1024 }}B"
+
+      # OKX 服务 CPU 使用过高
+      - alert: OKXHighCPUUsage
+        expr: rate(process_cpu_seconds_total{exchange="okx"}[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          exchange: okx
+        annotations:
+          summary: "OKX 服务 CPU 使用过高"
+          description: "{{ $labels.service }} CPU 使用率超过 80%: {{ $value | humanizePercentage }}"
+
+      # OKX 文件描述符使用过高
+      - alert: OKXHighFileDescriptorUsage
+        expr: process_open_fds{exchange="okx"} / process_max_fds{exchange="okx"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          exchange: okx
+        annotations:
+          summary: "OKX 文件描述符使用过高"
+          description: "{{ $labels.service }} 文件描述符使用率超过 80%: {{ $value | humanizePercentage }}"

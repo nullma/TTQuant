@@ -38,7 +38,7 @@ async fn main() -> Result<()> {
     info!("ZMQ PUB endpoint: {}", zmq_pub_endpoint);
     info!("Metrics port: {}", metrics_port);
 
-    // Start metrics HTTP server
+    // Start metrics HTTP server (in background)
     let metrics_handle = tokio::spawn(async move {
         if let Err(e) = metrics::start_metrics_server(metrics_port).await {
             error!("Metrics server error: {}", e);
@@ -70,23 +70,14 @@ async fn main() -> Result<()> {
         info!("No database URI provided, running without persistence");
     }
 
-    // Start order processing loop
+    // Start order processing loop (in main thread to avoid Send issues)
     info!("Gateway ready, waiting for orders...");
-    let gateway_handle = tokio::spawn(async move {
-        if let Err(e) = order_manager.run().await {
-            error!("Order manager error: {}", e);
-        }
-    });
-
-    // Wait for either task to complete
-    tokio::select! {
-        _ = metrics_handle => {
-            error!("Metrics server stopped unexpectedly");
-        }
-        _ = gateway_handle => {
-            error!("Gateway stopped unexpectedly");
-        }
+    if let Err(e) = order_manager.run().await {
+        error!("Order manager error: {}", e);
     }
+
+    // Wait for metrics server
+    let _ = metrics_handle.await;
 
     Ok(())
 }

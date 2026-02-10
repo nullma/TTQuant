@@ -1,0 +1,16 @@
+# TTQuant 生产环境风控配置
+# 相比开发环境，使用更严格的限制
+
+[position_limits]
+BTCUSDT = 1       # 最多持有 1 BTC
+ETHUSDT = 10      # 最多持有 10 ETH
+BNBUSDT = 50      # 最多持有 50 BNB
+
+[rate_limits]
+max_orders_per_second = 20                  # 全局每秒最大 20 单
+max_orders_per_strategy_per_second = 5      # 每策略每秒最大 5 单
+
+[order_validation]
+max_order_age_ms = 200        # 订单最大 200ms 时效（更严格）
+min_price = 0.01
+max_price = 200000.0          # BTC 最高价格限制

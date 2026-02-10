@@ -27,42 +27,33 @@ async fn main() -> Result<()> {
     info!("ZMQ endpoint: {}", zmq_endpoint);
     info!("Metrics port: {}", metrics_port);
 
-    // 启动 Metrics HTTP 服务器
+    // 启动 Metrics HTTP 服务器（在后台运行）
     let metrics_handle = tokio::spawn(async move {
         if let Err(e) = metrics::start_metrics_server(metrics_port).await {
             error!("Metrics server error: {}", e);
         }
     });
 
-    // 根据市场类型启动对应的服务
-    let market_handle = tokio::spawn(async move {
-        let result = match market.as_str() {
-            "binance" => {
-                binance::run(&zmq_endpoint, db_uri.as_deref()).await
-            }
-            "okx" => {
-                okx::run(&zmq_endpoint, db_uri.as_deref()).await
-            }
-            _ => {
-                error!("Unknown market: {}", market);
-                Err(anyhow::anyhow!("Unknown market"))
-            }
-        };
+    // 根据市场类型启动对应的服务（在主线程运行，避免 Send 问题）
+    let result = match market.as_str() {
+        "binance" => {
+            binance::run(&zmq_endpoint, db_uri.as_deref()).await
+        }
+        "okx" => {
+            okx::run(&zmq_endpoint, db_uri.as_deref()).await
+        }
+        _ => {
+            error!("Unknown market: {}", market);
+            Err(anyhow::anyhow!("Unknown market"))
+        }
+    };
 
-        if let Err(e) = result {
-            error!("Market data service error: {}", e);
-        }
-    });
-
-    // 等待任一任务完成
-    tokio::select! {
-        _ = metrics_handle => {
-            error!("Metrics server stopped unexpectedly");
-        }
-        _ = market_handle => {
-            error!("Market data service stopped unexpectedly");
-        }
+    if let Err(e) = result {
+        error!("Market data service error: {}", e);
     }
+
+    // 等待 metrics 服务器
+    let _ = metrics_handle.await;
 
     Ok(())
 }
