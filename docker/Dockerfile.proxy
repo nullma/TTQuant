@@ -1,0 +1,10 @@
+# 使用 gost 作为透明代理
+FROM gogost/gost:latest
+
+# 暴露代理端口
+EXPOSE 8080
+
+# 启动 gost，转发到宿主机的 Clash
+# -L: 监听地址
+# -F: 上游代理地址
+CMD ["-L=:8080", "-F=http://host.docker.internal:7897"]

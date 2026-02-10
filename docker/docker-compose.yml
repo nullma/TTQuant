@@ -31,6 +31,21 @@ services:
     networks:
       - ttquant-network
 
+  # ==================== 代理服务 ====================
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile.proxy
+    container_name: ttquant-proxy
+    restart: always
+    logging: *default-logging
+    ports:
+      - "8888:8080"
+    networks:
+      - ttquant-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   # ==================== 行情模块 ====================
   md-binance:
     build:
@@ -44,21 +59,21 @@ services:
       ZMQ_PUB_ENDPOINT: tcp://*:5555
       DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
       RUST_LOG: info
-      # 代理配置（使用宿主机 IP）
-      HTTP_PROXY: http://host.docker.internal:7890
-      HTTPS_PROXY: http://host.docker.internal:7890
-      http_proxy: http://host.docker.internal:7890
-      https_proxy: http://host.docker.internal:7890
+      # 使用内部代理服务
+      HTTP_PROXY: http://proxy:8080
+      HTTPS_PROXY: http://proxy:8080
+      http_proxy: http://proxy:8080
+      https_proxy: http://proxy:8080
     depends_on:
       timescaledb:
         condition: service_healthy
+      proxy:
+        condition: service_started
     ports:
       - "5555:5555"
       - "8080:8080"
     networks:
       - ttquant-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
   # ==================== 交易网关 ====================
   gateway-binance:
