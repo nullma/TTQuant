@@ -1,0 +1,116 @@
+version: '3.8'
+
+# 最小化部署配置 - 仅 OKX 服务
+# 适用于磁盘空间有限的环境
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "50m"
+    max-file: "2"
+
+services:
+  # 数据库
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: ttquant-timescaledb
+    restart: always
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ttquant
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
+      POSTGRES_DB: ttquant_trading
+    ports:
+      - "5432:5432"
+    volumes:
+      - tsdb-data:/var/lib/postgresql/data
+      - ../sql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ttquant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ttquant-network
+
+  # OKX 行情模块（使用预编译镜像）
+  md-okx:
+    image: rust:1.75-slim
+    container_name: ttquant-md-okx
+    restart: always
+    logging: *default-logging
+    working_dir: /app
+    command: >
+      bash -c "
+      apt-get update && apt-get install -y libzmq3-dev pkg-config libssl-dev curl build-essential &&
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y &&
+      . /root/.cargo/env &&
+      cd /app/rust &&
+      cargo build --release --bin market-data &&
+      /app/rust/target/release/market-data
+      "
+    environment:
+      MARKET: okx
+      ZMQ_PUB_ENDPOINT: tcp://*:5558
+      DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
+      RUST_LOG: info
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    ports:
+      - "5558:5558"
+      - "8082:8080"
+    volumes:
+      - ../rust:/app/rust:ro
+      - ../config:/app/config:ro
+      - cargo-cache:/root/.cargo
+    networks:
+      - ttquant-network
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ttquant-prometheus
+    restart: always
+    logging: *default-logging
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - ttquant-network
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ttquant-grafana
+    restart: always
+    logging: *default-logging
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - ttquant-network
+    depends_on:
+      - prometheus
+
+volumes:
+  tsdb-data:
+  prometheus-data:
+  grafana-data:
+  cargo-cache:
+
+networks:
+  ttquant-network:
+    name: ttquant-network
+    driver: bridge
