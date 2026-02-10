@@ -1,14 +1,16 @@
 use anyhow::Result;
-use tracing::{info, error};
+use tracing::{info, error, warn};
 use tracing_subscriber;
 
 mod risk;
 mod exchange;
 mod order_manager;
+mod metrics;
 
 use risk::RiskManager;
 use exchange::ExchangeRouter;
 use order_manager::OrderManager;
+use ttquant_common::Database;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -25,10 +27,23 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|_| "tcp://*:5556".to_string());
     let zmq_pub_endpoint = std::env::var("ZMQ_PUB_ENDPOINT")
         .unwrap_or_else(|_| "tcp://*:5557".to_string());
+    let metrics_port: u16 = std::env::var("METRICS_PORT")
+        .unwrap_or_else(|_| "8080".to_string())
+        .parse()
+        .unwrap_or(8080);
+    let db_uri = std::env::var("DB_URI").ok();
 
     info!("Exchange: {}", exchange);
     info!("ZMQ PULL endpoint: {}", zmq_pull_endpoint);
     info!("ZMQ PUB endpoint: {}", zmq_pub_endpoint);
+    info!("Metrics port: {}", metrics_port);
+
+    // Start metrics HTTP server
+    let metrics_handle = tokio::spawn(async move {
+        if let Err(e) = metrics::start_metrics_server(metrics_port).await {
+            error!("Metrics server error: {}", e);
+        }
+    });
 
     // Initialize components
     let risk_manager = RiskManager::new("config/risk.toml")?;
@@ -40,9 +55,38 @@ async fn main() -> Result<()> {
         exchange_router,
     )?;
 
+    // Initialize database connection if URI is provided
+    if let Some(uri) = db_uri {
+        match Database::new(&uri).await {
+            Ok(db) => {
+                info!("Database connection established");
+                order_manager = order_manager.with_database(db);
+            }
+            Err(e) => {
+                warn!("Failed to connect to database: {}, continuing without persistence", e);
+            }
+        }
+    } else {
+        info!("No database URI provided, running without persistence");
+    }
+
     // Start order processing loop
     info!("Gateway ready, waiting for orders...");
-    order_manager.run().await?;
+    let gateway_handle = tokio::spawn(async move {
+        if let Err(e) = order_manager.run().await {
+            error!("Order manager error: {}", e);
+        }
+    });
+
+    // Wait for either task to complete
+    tokio::select! {
+        _ = metrics_handle => {
+            error!("Metrics server stopped unexpectedly");
+        }
+        _ = gateway_handle => {
+            error!("Gateway stopped unexpectedly");
+        }
+    }
 
     Ok(())
 }

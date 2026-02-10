@@ -1,0 +1,123 @@
+# AlertManager Configuration for TTQuant
+# 告警管理器配置
+
+global:
+  # SMTP 配置（用于邮件告警）
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'ttquant-alerts@example.com'
+  smtp_auth_username: 'your-email@example.com'
+  smtp_auth_password: 'your-app-password'
+  smtp_require_tls: true
+
+  # Slack 配置（可选）
+  # slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+
+# 告警路由
+route:
+  # 默认接收者
+  receiver: 'default'
+
+  # 分组配置
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+
+  # 子路由
+  routes:
+    # 严重告警立即发送
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 5m
+
+    # 行情数据告警
+    - match:
+        component: market-data
+      receiver: 'market-data-team'
+      group_wait: 30s
+      repeat_interval: 1h
+
+    # 交易网关告警
+    - match:
+        component: gateway
+      receiver: 'trading-team'
+      group_wait: 10s
+      repeat_interval: 30m
+
+    # 策略告警
+    - match:
+        component: strategy
+      receiver: 'strategy-team'
+      group_wait: 1m
+      repeat_interval: 2h
+
+# 告警接收者配置
+receivers:
+  # 默认接收者
+  - name: 'default'
+    email_configs:
+      - to: 'ops-team@example.com'
+        headers:
+          Subject: '[TTQuant] Alert: {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>TTQuant Alert</h2>
+          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
+          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
+          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
+          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+
+  # 严重告警接收者
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'critical-alerts@example.com'
+        send_resolved: true
+        headers:
+          Subject: '[CRITICAL] TTQuant Alert: {{ .GroupLabels.alertname }}'
+    # Slack 通知（可选）
+    # slack_configs:
+    #   - channel: '#critical-alerts'
+    #     title: 'CRITICAL: {{ .GroupLabels.alertname }}'
+    #     text: '{{ .CommonAnnotations.description }}'
+
+  # 行情数据团队
+  - name: 'market-data-team'
+    email_configs:
+      - to: 'market-data-team@example.com'
+        headers:
+          Subject: '[Market Data] {{ .GroupLabels.alertname }}'
+
+  # 交易团队
+  - name: 'trading-team'
+    email_configs:
+      - to: 'trading-team@example.com'
+        headers:
+          Subject: '[Trading] {{ .GroupLabels.alertname }}'
+
+  # 策略团队
+  - name: 'strategy-team'
+    email_configs:
+      - to: 'strategy-team@example.com'
+        headers:
+          Subject: '[Strategy] {{ .GroupLabels.alertname }}'
+
+# 告警抑制规则
+inhibit_rules:
+  # 如果服务宕机，抑制该服务的其他告警
+  - source_match:
+      severity: 'critical'
+      alertname: '.*Down'
+    target_match:
+      severity: 'warning'
+    equal: ['service', 'instance']
+
+  # 如果有严重延迟告警，抑制一般延迟告警
+  - source_match:
+      severity: 'critical'
+      alertname: 'Critical.*Latency'
+    target_match:
+      severity: 'warning'
+      alertname: 'High.*Latency'
+    equal: ['service', 'exchange']

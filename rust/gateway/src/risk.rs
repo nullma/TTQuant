@@ -196,6 +196,19 @@ impl RiskManager {
     pub fn get_position(&self, symbol: &str) -> i32 {
         self.positions.get(symbol).map(|v| *v).unwrap_or(0)
     }
+
+    pub fn get_position_details(&self, symbol: &str) -> Option<PositionDetails> {
+        self.positions.get(symbol).map(|v| PositionDetails {
+            quantity: *v,
+            avg_price: 0.0, // TODO: 需要跟踪平均成本
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct PositionDetails {
+    pub quantity: i32,
+    pub avg_price: f64,
 }
 
 #[cfg(test)]

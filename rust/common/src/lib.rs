@@ -5,5 +5,7 @@ pub mod proto {
 pub mod zmq_wrapper;
 pub mod config;
 pub mod time;
+pub mod database;
 
 pub use proto::{MarketData, Order, Trade, Metrics};
+pub use database::{Database, MarketDataBatchWriter};

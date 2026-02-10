@@ -3,6 +3,8 @@ use chrono::{DateTime, Utc};
 use sqlx::{PgPool, postgres::PgPoolOptions};
 use tracing::{info, error, warn};
 use std::time::Duration;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 use crate::proto::{MarketData, Order, Trade};
 
@@ -235,7 +237,12 @@ impl Database {
 }
 
 /// 批量写入器 - 用于缓冲和批量写入行情数据
+#[derive(Clone)]
 pub struct MarketDataBatchWriter {
+    inner: Arc<Mutex<BatchWriterInner>>,
+}
+
+struct BatchWriterInner {
     db: Database,
     buffer: Vec<MarketData>,
     batch_size: usize,
@@ -245,39 +252,48 @@ pub struct MarketDataBatchWriter {
 
 impl MarketDataBatchWriter {
     pub fn new(db: Database, batch_size: usize, flush_interval_secs: u64) -> Self {
-        Self {
+        let inner = BatchWriterInner {
             db,
             buffer: Vec::with_capacity(batch_size),
             batch_size,
             flush_interval: Duration::from_secs(flush_interval_secs),
             last_flush: std::time::Instant::now(),
+        };
+        Self {
+            inner: Arc::new(Mutex::new(inner)),
         }
     }
 
     /// 添加行情数据到缓冲区
-    pub async fn add(&mut self, md: MarketData) -> Result<()> {
-        self.buffer.push(md);
+    pub async fn add(&self, md: MarketData) -> Result<()> {
+        let mut inner = self.inner.lock().await;
+        inner.buffer.push(md);
 
         // 检查是否需要刷新
-        if self.buffer.len() >= self.batch_size
-            || self.last_flush.elapsed() >= self.flush_interval {
-            self.flush().await?;
+        if inner.buffer.len() >= inner.batch_size
+            || inner.last_flush.elapsed() >= inner.flush_interval {
+            Self::flush_inner(&mut inner).await?;
         }
 
         Ok(())
     }
 
     /// 强制刷新缓冲区
-    pub async fn flush(&mut self) -> Result<()> {
-        if self.buffer.is_empty() {
+    pub async fn flush(&self) -> Result<()> {
+        let mut inner = self.inner.lock().await;
+        Self::flush_inner(&mut inner).await
+    }
+
+    async fn flush_inner(inner: &mut BatchWriterInner) -> Result<()> {
+        if inner.buffer.is_empty() {
             return Ok(());
         }
 
-        match self.db.insert_market_data_batch(&self.buffer).await {
+        match inner.db.insert_market_data_batch(&inner.buffer).await {
             Ok(_) => {
-                info!("Flushed {} market data records to database", self.buffer.len());
-                self.buffer.clear();
-                self.last_flush = std::time::Instant::now();
+                info!("Flushed {} market data records to database", inner.buffer.len());
+                inner.buffer.clear();
+                inner.last_flush = std::time::Instant::now();
                 Ok(())
             }
             Err(e) => {
@@ -289,8 +305,9 @@ impl MarketDataBatchWriter {
     }
 
     /// 获取缓冲区大小
-    pub fn buffer_size(&self) -> usize {
-        self.buffer.len()
+    pub async fn buffer_size(&self) -> usize {
+        let inner = self.inner.lock().await;
+        inner.buffer.len()
     }
 }
 

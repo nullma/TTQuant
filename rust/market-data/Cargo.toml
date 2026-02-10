@@ -23,3 +23,10 @@ crossbeam-channel.workspace = true
 bumpalo.workspace = true
 futures-util = "0.3"
 url = "2.5"
+# Prometheus metrics
+prometheus = { version = "0.13", features = ["process"] }
+lazy_static = "1.4"
+# HTTP server for metrics endpoint
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["trace"] }

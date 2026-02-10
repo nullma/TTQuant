@@ -5,6 +5,7 @@ use chrono::Utc;
 
 use ttquant_common::proto::{Order, Trade};
 use ttquant_common::zmq_wrapper::{ZmqPuller, ZmqPublisher};
+use ttquant_common::Database;
 
 use super::risk::RiskManager;
 use super::exchange::ExchangeRouter;
@@ -15,6 +16,7 @@ pub struct OrderManager {
     risk_manager: RiskManager,
     exchange_router: ExchangeRouter,
     order_count: u64,
+    db: Option<Database>,
 }
 
 impl OrderManager {
@@ -37,7 +39,15 @@ impl OrderManager {
             risk_manager,
             exchange_router,
             order_count: 0,
+            db: None,
         })
+    }
+
+    /// 设置数据库连接
+    pub fn with_database(mut self, db: Database) -> Self {
+        info!("Database persistence enabled for order manager");
+        self.db = Some(db);
+        self
     }
 
     pub async fn run(&mut self) -> Result<()> {
@@ -57,8 +67,22 @@ impl OrderManager {
                         order.strategy_id
                     );
 
+                    // 写入订单到数据库
+                    if let Some(ref db) = self.db {
+                        if let Err(e) = db.insert_order(&order).await {
+                            warn!("Failed to insert order to database: {}", e);
+                        }
+                    }
+
                     // Process order
                     let trade = self.process_order(&order).await;
+
+                    // 写入成交记录到数据库
+                    if let Some(ref db) = self.db {
+                        if let Err(e) = db.insert_trade(&trade).await {
+                            warn!("Failed to insert trade to database: {}", e);
+                        }
+                    }
 
                     // Publish trade result
                     let topic = format!("trade.{}.{}", order.symbol, self.exchange_router.exchange_name());
@@ -73,6 +97,21 @@ impl OrderManager {
                             &trade.side,
                             trade.filled_volume,
                         );
+
+                        // 写入持仓快照到数据库
+                        if let Some(ref db) = self.db {
+                            if let Some(position) = self.risk_manager.get_position_details(&trade.symbol) {
+                                if let Err(e) = db.insert_position_snapshot(
+                                    &trade.strategy_id,
+                                    &trade.symbol,
+                                    position.quantity,
+                                    position.avg_price,
+                                    0.0, // unrealized_pnl 需要根据当前价格计算
+                                ).await {
+                                    warn!("Failed to insert position snapshot: {}", e);
+                                }
+                            }
+                        }
                     }
 
                     // Log result

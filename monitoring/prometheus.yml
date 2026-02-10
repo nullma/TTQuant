@@ -1,0 +1,114 @@
+# Prometheus Configuration for TTQuant
+# 监控系统配置文件
+
+global:
+  # 全局抓取间隔
+  scrape_interval: 15s
+  # 评估规则间隔
+  evaluation_interval: 15s
+  # 抓取超时
+  scrape_timeout: 10s
+
+  # 外部标签（用于联邦和远程存储）
+  external_labels:
+    cluster: 'ttquant-prod'
+    environment: 'production'
+
+# 告警管理器配置
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - 'alertmanager:9093'
+
+# 加载告警规则
+rule_files:
+  - '/etc/prometheus/alerts.yml'
+
+# 抓取配置
+scrape_configs:
+  # Prometheus 自身监控
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Market Data 服务监控
+  - job_name: 'market-data'
+    scrape_interval: 5s  # 行情数据需要更高频率
+    static_configs:
+      - targets: ['md-binance:8080']
+        labels:
+          service: 'market-data'
+          exchange: 'binance'
+      - targets: ['md-okx:8080']
+        labels:
+          service: 'market-data'
+          exchange: 'okx'
+    # 健康检查
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  # Gateway 服务监控
+  - job_name: 'gateway'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['gateway-binance:8080']
+        labels:
+          service: 'gateway'
+          exchange: 'binance'
+      - targets: ['gateway-okx:8080']
+        labels:
+          service: 'gateway'
+          exchange: 'okx'
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  # Python 策略引擎监控
+  - job_name: 'strategy-engine'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['strategy-engine:8000']
+        labels:
+          service: 'strategy-engine'
+    metrics_path: '/metrics'
+    scheme: 'http'
+
+  # TimescaleDB 监控（使用 postgres_exporter）
+  - job_name: 'timescaledb'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'timescaledb'
+
+  # Node Exporter（系统指标）
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+
+# 远程写入配置（可选，用于长期存储）
+# remote_write:
+#   - url: "http://remote-storage:9009/api/v1/write"
+#     queue_config:
+#       capacity: 10000
+#       max_shards: 5
+#       min_shards: 1
+#       max_samples_per_send: 5000
+#       batch_send_deadline: 5s
+
+# 远程读取配置（可选）
+# remote_read:
+#   - url: "http://remote-storage:9009/api/v1/read"
+
+# 存储配置
+storage:
+  tsdb:
+    # 数据保留时间
+    retention.time: 30d
+    # 数据保留大小
+    retention.size: 50GB
+    # 压缩
+    wal_compression: true

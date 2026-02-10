@@ -1,0 +1,254 @@
+# Prometheus Alert Rules for TTQuant
+# 告警规则配置
+
+groups:
+  # ==================== 行情数据告警 ====================
+  - name: market_data_alerts
+    interval: 30s
+    rules:
+      # 行情延迟告警
+      - alert: HighMarketDataLatency
+        expr: market_data_latency_ms > 1000
+        for: 1m
+        labels:
+          severity: warning
+          component: market-data
+        annotations:
+          summary: "High market data latency detected"
+          description: "Market data latency is {{ $value }}ms for {{ $labels.symbol }} on {{ $labels.exchange }}"
+
+      # 行情延迟严重告警
+      - alert: CriticalMarketDataLatency
+        expr: market_data_latency_ms > 5000
+        for: 30s
+        labels:
+          severity: critical
+          component: market-data
+        annotations:
+          summary: "Critical market data latency detected"
+          description: "Market data latency is {{ $value }}ms for {{ $labels.symbol }} on {{ $labels.exchange }}"
+
+      # 行情数据中断告警
+      - alert: MarketDataStreamDown
+        expr: rate(market_data_received_total[1m]) == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: market-data
+        annotations:
+          summary: "Market data stream is down"
+          description: "No market data received for {{ $labels.symbol }} on {{ $labels.exchange }} in the last 2 minutes"
+
+      # 行情接收速率异常低
+      - alert: LowMarketDataRate
+        expr: rate(market_data_received_total[1m]) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: market-data
+        annotations:
+          summary: "Low market data reception rate"
+          description: "Market data rate is {{ $value | humanize }} msg/s for {{ $labels.symbol }}"
+
+  # ==================== 交易网关告警 ====================
+  - name: gateway_alerts
+    interval: 30s
+    rules:
+      # 订单延迟告警
+      - alert: HighOrderLatency
+        expr: order_processing_latency_ms > 500
+        for: 1m
+        labels:
+          severity: warning
+          component: gateway
+        annotations:
+          summary: "High order processing latency"
+          description: "Order latency is {{ $value }}ms on {{ $labels.exchange }}"
+
+      # 订单延迟严重告警
+      - alert: CriticalOrderLatency
+        expr: order_processing_latency_ms > 2000
+        for: 30s
+        labels:
+          severity: critical
+          component: gateway
+        annotations:
+          summary: "Critical order processing latency"
+          description: "Order latency is {{ $value }}ms on {{ $labels.exchange }}"
+
+      # 订单失败率告警
+      - alert: HighOrderFailureRate
+        expr: rate(orders_failed_total[5m]) / rate(orders_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          component: gateway
+        annotations:
+          summary: "High order failure rate"
+          description: "Order failure rate is {{ $value | humanizePercentage }} on {{ $labels.exchange }}"
+
+      # 订单失败率严重告警
+      - alert: CriticalOrderFailureRate
+        expr: rate(orders_failed_total[5m]) / rate(orders_total[5m]) > 0.3
+        for: 1m
+        labels:
+          severity: critical
+          component: gateway
+        annotations:
+          summary: "Critical order failure rate"
+          description: "Order failure rate is {{ $value | humanizePercentage }} on {{ $labels.exchange }}"
+
+      # 风控拒单告警
+      - alert: HighRiskRejectionRate
+        expr: rate(orders_risk_rejected_total[5m]) / rate(orders_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          component: gateway
+        annotations:
+          summary: "High risk rejection rate"
+          description: "Risk rejection rate is {{ $value | humanizePercentage }} on {{ $labels.exchange }}"
+
+      # Gateway 服务宕机
+      - alert: GatewayDown
+        expr: up{job="gateway"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: gateway
+        annotations:
+          summary: "Gateway service is down"
+          description: "Gateway {{ $labels.instance }} is down"
+
+  # ==================== 策略引擎告警 ====================
+  - name: strategy_alerts
+    interval: 1m
+    rules:
+      # 策略亏损告警
+      - alert: StrategyLoss
+        expr: strategy_pnl_total < -1000
+        for: 5m
+        labels:
+          severity: warning
+          component: strategy
+        annotations:
+          summary: "Strategy is losing money"
+          description: "Strategy {{ $labels.strategy_id }} PnL is {{ $value | humanize }} USD"
+
+      # 策略严重亏损告警
+      - alert: CriticalStrategyLoss
+        expr: strategy_pnl_total < -5000
+        for: 2m
+        labels:
+          severity: critical
+          component: strategy
+        annotations:
+          summary: "Critical strategy loss"
+          description: "Strategy {{ $labels.strategy_id }} PnL is {{ $value | humanize }} USD"
+
+      # 策略胜率过低
+      - alert: LowWinRate
+        expr: strategy_win_rate < 0.3
+        for: 10m
+        labels:
+          severity: warning
+          component: strategy
+        annotations:
+          summary: "Low strategy win rate"
+          description: "Strategy {{ $labels.strategy_id }} win rate is {{ $value | humanizePercentage }}"
+
+      # 策略引擎宕机
+      - alert: StrategyEngineDown
+        expr: up{job="strategy-engine"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: strategy
+        annotations:
+          summary: "Strategy engine is down"
+          description: "Strategy engine {{ $labels.instance }} is down"
+
+      # 策略持仓过大
+      - alert: HighPositionSize
+        expr: abs(strategy_position_size) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: strategy
+        annotations:
+          summary: "High position size detected"
+          description: "Strategy {{ $labels.strategy_id }} position size is {{ $value }} for {{ $labels.symbol }}"
+
+  # ==================== 系统资源告警 ====================
+  - name: system_alerts
+    interval: 1m
+    rules:
+      # CPU 使用率告警
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # 内存使用率告警
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # 磁盘使用率告警
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is {{ $value | humanize }}% on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+
+  # ==================== 数据库告警 ====================
+  - name: database_alerts
+    interval: 1m
+    rules:
+      # 数据库连接数告警
+      - alert: HighDatabaseConnections
+        expr: pg_stat_database_numbackends > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database connections"
+          description: "Database has {{ $value }} active connections"
+
+      # 数据库宕机
+      - alert: DatabaseDown
+        expr: up{job="timescaledb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database is down"
+          description: "TimescaleDB {{ $labels.instance }} is down"
+
+      # 慢查询告警
+      - alert: SlowQueries
+        expr: rate(pg_stat_database_tup_fetched[5m]) / rate(pg_stat_database_tup_returned[5m]) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "Query efficiency is low on {{ $labels.datname }}"
