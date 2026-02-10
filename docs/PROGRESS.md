@@ -63,7 +63,16 @@
 - [x] 数据保留策略
 - [x] 视图和索引
 
-### 9. 文档
+### 9. Python 策略引擎 🆕
+- [x] BaseStrategy 抽象类
+- [x] Portfolio 持仓管理
+- [x] StrategyEngine 核心
+- [x] EMA 交叉策略示例
+- [x] 策略测试框架
+- [x] ZMQ 通信集成
+- [x] 依赖注入设计（回测即实盘）
+
+### 10. 文档
 - [x] 系统设计文档
 - [x] Docker 部署指南
 - [x] 快速开始指南
@@ -75,28 +84,22 @@
 
 ## 🚧 待实现
 
-### 1. Python 策略引擎
-- [ ] BaseStrategy 抽象类
-- [ ] StrategyEngine 核心
-- [ ] 示例策略（EMA Cross）
-- [ ] 持仓管理
-
-### 2. 回测框架
+### 1. 回测框架
 - [ ] BacktestEngine
 - [ ] BacktestDataSource（Polars + ConnectorX）
 - [ ] BacktestOrderGateway（滑点+手续费）
 
-### 3. 更多市场支持
+### 2. 更多市场支持
 - [ ] OKX WebSocket 实现
 - [ ] Tushare A股数据接入
 
-### 4. 监控系统
+### 3. 监控系统
 - [ ] Prometheus 配置
 - [ ] Grafana Dashboard
 - [ ] 告警规则
 - [ ] AlertManager
 
-### 5. 生产优化
+### 4. 生产优化
 - [ ] 健康检查端点
 - [ ] 性能指标上报
 - [ ] 日志结构化
@@ -108,15 +111,16 @@
 ### 立即可测试 ✅
 
 ```bash
-# 1. 构建并启动服务
+# 1. 测试策略引擎（本地）
+cd python
+python test_strategy.py
+
+# 2. 构建并启动服务
 make build
 make up
 
-# 2. 查看实时行情
+# 3. 查看实时行情
 make logs-md
-
-# 3. 测试网关模块
-make test-gateway
 
 # 4. 查看网关日志
 make logs-gateway
@@ -127,19 +131,20 @@ docker exec -it ttquant-timescaledb psql -U ttquant -d ttquant_trading
 
 ### 开发优先级
 
-1. **测试 Gateway 模块** ⭐⭐⭐
-   - 验证订单提交和成交回报
-   - 测试风控规则
-   - 测试模拟交易模式
+1. **端到端集成测试** ⭐⭐⭐
+   - 运行真实策略引擎连接 Gateway
+   - 验证完整交易流程
+   - 测试持仓和 PnL 计算
 
-2. **实现 Python 策略引擎** ⭐⭐⭐
-   - BaseStrategy 抽象
-   - 简单的 EMA 交叉策略
-   - 与 Gateway 集成
-
-3. **实现数据库写入** ⭐⭐
+2. **实现数据库写入** ⭐⭐
    - 行情数据持久化
    - 订单和成交记录
+   - 持仓快照
+
+3. **回测框架** ⭐⭐
+   - BacktestEngine
+   - 历史数据加载
+   - 性能分析
 
 4. **完善监控** ⭐
    - Prometheus + Grafana
@@ -147,6 +152,6 @@ docker exec -it ttquant-timescaledb psql -U ttquant -d ttquant_trading
 
 ---
 
-**当前进度**: 约 60% 完成（核心交易链路已打通）
-**可运行状态**: ✅ 是（行情 + 交易模块可独立运行）
-**生产就绪**: ⚠️ 部分（需要完成策略引擎和监控）
+**当前进度**: 约 70% 完成（核心交易链路 + 策略引擎已完成）
+**可运行状态**: ✅ 是（行情 + 交易 + 策略全部可运行）
+**生产就绪**: ⚠️ 部分（需要完成数据持久化和监控）
