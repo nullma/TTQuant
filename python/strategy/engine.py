@@ -114,9 +114,13 @@ class StrategyEngine:
         logger.info(f"Strategies: {list(self.strategies.keys())}")
         logger.info("=" * 60)
 
-        # 信号处理
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
+        # 信号处理（仅在主线程中注册）
+        try:
+            signal.signal(signal.SIGINT, self._signal_handler)
+            signal.signal(signal.SIGTERM, self._signal_handler)
+        except ValueError:
+            # 在非主线程中运行，跳过信号处理
+            logger.warning("Running in non-main thread, signal handlers not registered")
 
         try:
             while self.running:
