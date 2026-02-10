@@ -13,9 +13,14 @@ import json
 import time
 import signal
 import sys
+import os
 from typing import Dict, List
 from .base_strategy import BaseStrategy, MarketData, Trade, Order
 import logging
+
+# 添加 proto 目录到路径
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from proto.protobuf_codec import encode_order, decode_trade
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,24 +32,40 @@ logger = logging.getLogger(__name__)
 class OrderGateway:
     """订单网关（ZMQ PUSH）"""
 
-    def __init__(self, endpoint: str):
+    def __init__(self, endpoint: str, use_protobuf: bool = True):
         self.context = zmq.Context()
         self.socket = self.context.socket(zmq.PUSH)
         self.socket.connect(endpoint)
-        logger.info(f"Order gateway connected to {endpoint}")
+        self.use_protobuf = use_protobuf
+        logger.info(f"Order gateway connected to {endpoint} (protobuf: {use_protobuf})")
 
     def send_order(self, order: Order):
-        """发送订单（JSON 格式）"""
-        order_dict = {
-            'order_id': order.order_id,
-            'strategy_id': order.strategy_id,
-            'symbol': order.symbol,
-            'price': order.price,
-            'volume': order.volume,
-            'side': order.side,
-            'timestamp': order.timestamp
-        }
-        self.socket.send_json(order_dict)
+        """发送订单（Protobuf 或 JSON 格式）"""
+        if self.use_protobuf:
+            # 使用 Protobuf 编码
+            order_bytes = encode_order(
+                order_id=order.order_id,
+                strategy_id=order.strategy_id,
+                symbol=order.symbol,
+                price=order.price,
+                volume=order.volume,
+                side=order.side,
+                timestamp=order.timestamp
+            )
+            self.socket.send(order_bytes)
+        else:
+            # 使用 JSON 编码（用于测试）
+            order_dict = {
+                'order_id': order.order_id,
+                'strategy_id': order.strategy_id,
+                'symbol': order.symbol,
+                'price': order.price,
+                'volume': order.volume,
+                'side': order.side,
+                'timestamp': order.timestamp
+            }
+            self.socket.send_json(order_dict)
+
         logger.info(f"[Order] {order.side} {order.volume} {order.symbol} @ ${order.price}")
 
 
@@ -82,7 +103,8 @@ class StrategyEngine:
 
         # 订单网关（PUSH）
         order_endpoint = config.get('order_endpoint', 'tcp://localhost:5556')
-        self.order_gateway = OrderGateway(order_endpoint)
+        use_protobuf = config.get('use_protobuf', True)
+        self.order_gateway = OrderGateway(order_endpoint, use_protobuf)
 
         # Poller
         self.poller = zmq.Poller()
@@ -171,8 +193,14 @@ class StrategyEngine:
         """处理成交回报"""
         try:
             topic = self.trade_sub.recv_string()
-            data = self.trade_sub.recv_string()
-            trade_dict = json.loads(data)
+            data_bytes = self.trade_sub.recv()
+
+            # 尝试 Protobuf 解码
+            if self.order_gateway.use_protobuf:
+                trade_dict = decode_trade(data_bytes)
+            else:
+                # JSON 解码（用于测试）
+                trade_dict = json.loads(data_bytes.decode('utf-8'))
 
             trade = Trade(
                 trade_id=trade_dict['trade_id'],
@@ -184,10 +212,10 @@ class StrategyEngine:
                 filled_volume=trade_dict['filled_volume'],
                 trade_time=trade_dict['trade_time'],
                 status=trade_dict['status'],
-                error_code=trade_dict['error_code'],
-                error_message=trade_dict['error_message'],
-                is_retryable=trade_dict['is_retryable'],
-                commission=trade_dict['commission']
+                error_code=trade_dict.get('error_code', 0),
+                error_message=trade_dict.get('error_message', ''),
+                is_retryable=trade_dict.get('is_retryable', False),
+                commission=trade_dict.get('commission', 0.0)
             )
 
             self.stats['trade_count'] += 1

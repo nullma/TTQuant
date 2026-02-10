@@ -44,6 +44,11 @@ services:
       ZMQ_PUB_ENDPOINT: tcp://*:5555
       DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
       RUST_LOG: info
+      # 代理配置（使用宿主机 IP）
+      HTTP_PROXY: http://host.docker.internal:7890
+      HTTPS_PROXY: http://host.docker.internal:7890
+      http_proxy: http://host.docker.internal:7890
+      https_proxy: http://host.docker.internal:7890
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -52,6 +57,8 @@ services:
       - "8080:8080"
     networks:
       - ttquant-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # ==================== 交易网关 ====================
   gateway-binance:
