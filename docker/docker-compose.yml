@@ -87,6 +87,11 @@ services:
       ZMQ_PUB_ENDPOINT: tcp://*:5558
       DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
       RUST_LOG: info
+      # 使用宿主机混合代理访问 OKX (端口 10808 支持 HTTP/SOCKS)
+      HTTP_PROXY: http://host.docker.internal:10808
+      HTTPS_PROXY: http://host.docker.internal:10808
+      http_proxy: http://host.docker.internal:10808
+      https_proxy: http://host.docker.internal:10808
     depends_on:
       timescaledb:
         condition: service_healthy
@@ -95,6 +100,8 @@ services:
       - "8082:8080"
     networks:
       - ttquant-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   # ==================== 交易网关 ====================
   gateway-binance:
@@ -185,15 +192,16 @@ services:
       MD_ENDPOINT: tcp://md-okx:5558
       TRADE_ENDPOINT: tcp://gateway-okx:5560
       ORDER_ENDPOINT: tcp://gateway-okx:5559
-      STRATEGY_CONFIG: /app/config/strategies.toml
+      STRATEGY_CONFIG: /config/strategies.toml
       PYTHONUNBUFFERED: "1"
     depends_on:
       - md-okx
       - gateway-okx
       - timescaledb
-    command: python run_strategy_engine.py
+    command: python /code/run_strategy_engine.py
     volumes:
-      - ../config:/app/config:ro
+      - ../config:/config:ro
+      - ../python:/code:ro
     networks:
       - ttquant-network
 
