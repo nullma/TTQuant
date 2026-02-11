@@ -68,6 +68,10 @@ class EMACrossStrategy(BaseStrategy):
         if md.symbol != self.symbol:
             return
 
+        # 先检查风控触发（止损止盈）
+        if self.check_risk_triggers(md.symbol, md.last_price):
+            return  # 已触发平仓，不再执行策略逻辑
+
         # 更新 EMA
         price = md.last_price
         fast = self.ema_fast.update(price)

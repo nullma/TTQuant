@@ -43,13 +43,15 @@ def main():
 
     # 数据库配置
     db_password = os.getenv('DB_PASSWORD', 'changeme')
-    db_uri = f"postgresql://ttquant:{db_password}@localhost:5432/ttquant_trading"
+    # Docker 环境中使用 timescaledb 主机名
+    db_host = os.getenv('DB_HOST', 'timescaledb')
+    db_uri = f"postgresql://ttquant:{db_password}@{db_host}:5432/ttquant_trading"
 
     # 回测参数
     SYMBOLS = ['BTCUSDT']
-    START_DATE = datetime(2024, 1, 1)
-    END_DATE = datetime(2024, 12, 31)
-    EXCHANGE = 'binance'
+    START_DATE = datetime(2026, 2, 10)
+    END_DATE = datetime(2026, 2, 11)
+    EXCHANGE = 'okx'  # 使用 OKX 数据
     INITIAL_CAPITAL = 100000.0
 
     # 交易成本

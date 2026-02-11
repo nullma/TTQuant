@@ -40,7 +40,7 @@ services:
     restart: always
     logging: *default-logging
     ports:
-      - "8888:8080"
+      - "1080:1080"
     networks:
       - ttquant-network
     extra_hosts:
@@ -87,21 +87,18 @@ services:
       ZMQ_PUB_ENDPOINT: tcp://*:5558
       DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
       RUST_LOG: info
-      # 使用宿主机混合代理访问 OKX (端口 10808 支持 HTTP/SOCKS)
-      HTTP_PROXY: http://host.docker.internal:10808
-      HTTPS_PROXY: http://host.docker.internal:10808
-      http_proxy: http://host.docker.internal:10808
-      https_proxy: http://host.docker.internal:10808
+      # 使用 SOCKS5 代理连接 OKX
+      SOCKS5_PROXY: proxy:1080
     depends_on:
       timescaledb:
         condition: service_healthy
+      proxy:
+        condition: service_started
     ports:
       - "5558:5558"
       - "8082:8080"
     networks:
       - ttquant-network
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     dns:
       - 8.8.8.8
       - 1.1.1.1

@@ -6,6 +6,7 @@ StrategyEngine - 策略引擎核心
 2. 分发行情到策略
 3. 接收策略订单并发送到 Gateway（ZMQ PUSH）
 4. 接收成交回报并分发到策略（ZMQ SUB）
+5. 集成风控管理
 """
 
 import zmq
@@ -16,6 +17,7 @@ import sys
 import os
 from typing import Dict, List
 from .base_strategy import BaseStrategy, MarketData, Trade, Order
+from .risk_manager import RiskManager, RiskConfig
 import logging
 
 # 添加 proto 目录到路径
@@ -77,6 +79,25 @@ class StrategyEngine:
         self.strategies: Dict[str, BaseStrategy] = {}
         self.running = False
 
+        # 风控管理器（可选）
+        risk_config_dict = config.get('risk_management', {})
+        if risk_config_dict.get('enabled', False):
+            risk_config = RiskConfig(
+                stop_loss_pct=risk_config_dict.get('stop_loss_pct', 0.02),
+                take_profit_pct=risk_config_dict.get('take_profit_pct', 0.05),
+                max_position_pct=risk_config_dict.get('max_position_pct', 0.3),
+                max_total_position_pct=risk_config_dict.get('max_total_position_pct', 0.8),
+                daily_loss_limit=risk_config_dict.get('daily_loss_limit', 5000.0),
+                max_positions=risk_config_dict.get('max_positions', 5),
+                enabled=True
+            )
+            initial_capital = risk_config_dict.get('initial_capital', 100000.0)
+            self.risk_manager = RiskManager(risk_config, initial_capital)
+            logger.info("Risk management enabled")
+        else:
+            self.risk_manager = None
+            logger.info("Risk management disabled")
+
         # ZMQ Context
         self.context = zmq.Context()
 
@@ -122,6 +143,9 @@ class StrategyEngine:
     def add_strategy(self, strategy: BaseStrategy):
         """添加策略"""
         strategy.set_order_gateway(self.order_gateway)
+        # 设置风控管理器
+        if self.risk_manager:
+            strategy.set_risk_manager(self.risk_manager)
         self.strategies[strategy.strategy_id] = strategy
         logger.info(f"Strategy added: {strategy.strategy_id}")
 
@@ -205,15 +229,15 @@ class StrategyEngine:
                 trade_dict = json.loads(data_bytes.decode('utf-8'))
 
             trade = Trade(
-                trade_id=trade_dict['trade_id'],
-                order_id=trade_dict['order_id'],
-                strategy_id=trade_dict['strategy_id'],
-                symbol=trade_dict['symbol'],
-                side=trade_dict['side'],
-                filled_price=trade_dict['filled_price'],
-                filled_volume=trade_dict['filled_volume'],
-                trade_time=trade_dict['trade_time'],
-                status=trade_dict['status'],
+                trade_id=trade_dict.get('trade_id', ''),
+                order_id=trade_dict.get('order_id', ''),
+                strategy_id=trade_dict.get('strategy_id', ''),
+                symbol=trade_dict.get('symbol', ''),
+                side=trade_dict.get('side', ''),
+                filled_price=trade_dict.get('filled_price', 0.0),
+                filled_volume=trade_dict.get('filled_volume', 0),
+                trade_time=trade_dict.get('trade_time', 0),
+                status=trade_dict.get('status', ''),
                 error_code=trade_dict.get('error_code', 0),
                 error_message=trade_dict.get('error_message', ''),
                 is_retryable=trade_dict.get('is_retryable', False),

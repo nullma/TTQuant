@@ -2,10 +2,13 @@ use anyhow::Result;
 use futures_util::{SinkExt, StreamExt};
 use serde_json::Value;
 use tokio::time::{Duration, interval};
-use tokio_tungstenite::{connect_async, tungstenite::Message};
+use tokio::net::TcpStream;
+use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+use tokio_socks::tcp::Socks5Stream;
 use tracing::{info, warn, error};
 use ttquant_common::{MarketData, zmq_wrapper::ZmqPublisher, time::now_nanos, Database, MarketDataBatchWriter};
 use bumpalo::Bump;
+use url::Url;
 
 const OKX_WS_URL: &str = "wss://ws.okx.com:8443/ws/v5/public";
 
@@ -63,8 +66,29 @@ async fn connect_and_stream(
     subscribe_msg: &str,
     db_writer: Option<&MarketDataBatchWriter>,
 ) -> Result<()> {
-    // 连接 WebSocket
-    let (ws_stream, _) = connect_async(OKX_WS_URL).await?;
+    // 检查是否配置了 SOCKS5 代理
+    let socks5_proxy = std::env::var("SOCKS5_PROXY").ok();
+
+    let ws_stream = if let Some(proxy_addr) = socks5_proxy {
+        info!("Using SOCKS5 proxy: {}", proxy_addr);
+
+        // 解析 OKX WebSocket URL
+        let url = Url::parse(OKX_WS_URL)?;
+        let host = url.host_str().ok_or_else(|| anyhow::anyhow!("Invalid host"))?;
+        let port = url.port().unwrap_or(8443);
+
+        // 通过 SOCKS5 代理连接
+        let tcp_stream = Socks5Stream::connect(proxy_addr.as_str(), (host, port)).await?;
+
+        // 升级到 WebSocket
+        let (ws_stream, _) = tokio_tungstenite::client_async_tls(url, tcp_stream.into_inner()).await?;
+        ws_stream
+    } else {
+        // 直接连接
+        let (ws_stream, _) = connect_async(OKX_WS_URL).await?;
+        ws_stream
+    };
+
     info!("Connected to OKX WebSocket");
 
     let (mut write, mut read) = ws_stream.split();

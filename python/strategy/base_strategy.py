@@ -5,12 +5,16 @@ BaseStrategy - 策略基类
 - 所有策略继承此基类
 - 通过依赖注入切换数据源和订单网关
 - 回测和实盘共用同一套策略代码
+- 集成风控管理
 """
 
 from abc import ABC, abstractmethod
 from typing import Dict, Optional, Any
 from dataclasses import dataclass
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -145,10 +149,16 @@ class BaseStrategy(ABC):
         self.portfolio = Portfolio()
         self._order_gateway = None
         self._order_counter = 0
+        self._risk_manager = None  # 风控管理器（可选）
 
     def set_order_gateway(self, gateway):
         """设置订单网关（依赖注入）"""
         self._order_gateway = gateway
+
+    def set_risk_manager(self, risk_manager):
+        """设置风控管理器（可选）"""
+        self._risk_manager = risk_manager
+        logger.info(f"Risk manager enabled for strategy: {self.strategy_id}")
 
     @abstractmethod
     def on_market_data(self, md: MarketData):
@@ -170,7 +180,7 @@ class BaseStrategy(ABC):
 
     def send_order(self, symbol: str, side: str, price: float, volume: int):
         """
-        发送订单
+        发送订单（带风控检查）
 
         Args:
             symbol: 交易对
@@ -180,6 +190,23 @@ class BaseStrategy(ABC):
         """
         if self._order_gateway is None:
             raise RuntimeError("Order gateway not set")
+
+        # 风控检查
+        if self._risk_manager:
+            # 检查每日亏损限制
+            if not self._risk_manager.check_daily_loss_limit():
+                logger.warning(f"[Risk] Order rejected: Daily loss limit reached")
+                return
+
+            # 检查仓位限制（仅对开仓订单）
+            pos = self.get_position(symbol)
+            is_opening = (pos is None or pos.volume == 0) or \
+                        (pos.volume > 0 and side == 'BUY') or \
+                        (pos.volume < 0 and side == 'SELL')
+
+            if is_opening and not self._risk_manager.check_position_limit(symbol, volume, price):
+                logger.warning(f"[Risk] Order rejected: Position limit exceeded")
+                return
 
         self._order_counter += 1
         order = Order(
@@ -193,6 +220,30 @@ class BaseStrategy(ABC):
         )
 
         self._order_gateway.send_order(order)
+
+    def check_risk_triggers(self, symbol: str, current_price: float):
+        """
+        检查风控触发条件（止损止盈）
+
+        Args:
+            symbol: 交易对
+            current_price: 当前价格
+
+        Returns:
+            是否需要平仓
+        """
+        if not self._risk_manager:
+            return False
+
+        risk = self._risk_manager.check_stop_loss_take_profit(symbol, current_price)
+        if risk and risk.should_close:
+            logger.info(f"[Risk] {risk.close_reason}")
+            # 平仓
+            side = 'SELL' if risk.volume > 0 else 'BUY'
+            self.send_order(symbol, side, current_price, abs(risk.volume))
+            return True
+
+        return False
 
     def get_position(self, symbol: str) -> Optional[Position]:
         """获取持仓"""

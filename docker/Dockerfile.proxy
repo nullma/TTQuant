@@ -1,10 +1,10 @@
-# 使用 gost 作为透明代理
+# 使用 gost 作为 SOCKS5 代理转发
 FROM gogost/gost:latest
 
-# 暴露代理端口
-EXPOSE 8080
+# 暴露 SOCKS5 端口
+EXPOSE 1080
 
-# 启动 gost，转发到宿主机的 Clash
-# -L: 监听地址
-# -F: 上游代理地址
-CMD ["-L=:8080", "-F=http://host.docker.internal:7897"]
+# 启动 gost，监听 SOCKS5，转发到宿主机的 v2rayN SOCKS5
+# -L: 监听 SOCKS5 地址
+# -F: 上游 SOCKS5 代理地址
+CMD ["-L=socks5://:1080", "-F=socks5://host.docker.internal:10808"]
