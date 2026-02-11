@@ -1,0 +1,124 @@
+{
+  "dashboard": {
+    "title": "TTQuant Backtest Results",
+    "tags": ["ttquant", "backtest"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Backtest Performance Summary",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "format": "table",
+            "rawSql": "SELECT \n  strategy_id,\n  symbol,\n  COUNT(*) as total_trades,\n  SUM(CASE WHEN side = 'BUY' THEN 1 ELSE 0 END) as buy_trades,\n  SUM(CASE WHEN side = 'SELL' THEN 1 ELSE 0 END) as sell_trades,\n  AVG(filled_price) as avg_price,\n  SUM(filled_volume) as total_volume\nFROM trades\nWHERE $__timeFilter(trade_time)\nGROUP BY strategy_id, symbol\nORDER BY total_trades DESC",
+            "refId": "A"
+          }
+        ],
+        "datasource": "PostgreSQL"
+      },
+      {
+        "id": 2,
+        "title": "Trade History",
+        "type": "table",
+        "gridPos": {"h": 10, "w": 24, "x": 0, "y": 8},
+        "targets": [
+          {
+            "format": "table",
+            "rawSql": "SELECT \n  trade_time,\n  strategy_id,\n  symbol,\n  side,\n  filled_price,\n  filled_volume,\n  commission,\n  status\nFROM trades\nWHERE $__timeFilter(trade_time)\nORDER BY trade_time DESC\nLIMIT 100",
+            "refId": "A"
+          }
+        ],
+        "datasource": "PostgreSQL"
+      },
+      {
+        "id": 3,
+        "title": "Position Changes Over Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
+        "targets": [
+          {
+            "format": "time_series",
+            "rawSql": "SELECT \n  update_time as time,\n  volume,\n  symbol\nFROM positions\nWHERE $__timeFilter(update_time)\nORDER BY time",
+            "refId": "A"
+          }
+        ],
+        "datasource": "PostgreSQL",
+        "yaxes": [
+          {"label": "Volume", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "PnL Over Time",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
+        "targets": [
+          {
+            "format": "time_series",
+            "rawSql": "SELECT \n  update_time as time,\n  realized_pnl + unrealized_pnl as total_pnl,\n  symbol\nFROM positions\nWHERE $__timeFilter(update_time)\nORDER BY time",
+            "refId": "A"
+          }
+        ],
+        "datasource": "PostgreSQL",
+        "yaxes": [
+          {"label": "PnL (USDT)", "show": true},
+          {"show": true}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Order Status Distribution",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 26},
+        "targets": [
+          {
+            "format": "table",
+            "rawSql": "SELECT \n  status,\n  COUNT(*) as count\nFROM orders\nWHERE $__timeFilter(order_time)\nGROUP BY status",
+            "refId": "A"
+          }
+        ],
+        "datasource": "PostgreSQL"
+      },
+      {
+        "id": 6,
+        "title": "Trade Volume by Symbol",
+        "type": "bargauge",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 26},
+        "targets": [
+          {
+            "format": "table",
+            "rawSql": "SELECT \n  symbol,\n  SUM(filled_volume * filled_price) as volume_usdt\nFROM trades\nWHERE $__timeFilter(trade_time) AND status = 'FILLED'\nGROUP BY symbol\nORDER BY volume_usdt DESC",
+            "refId": "A"
+          }
+        ],
+        "datasource": "PostgreSQL"
+      },
+      {
+        "id": 7,
+        "title": "Win Rate by Strategy",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 26},
+        "targets": [
+          {
+            "format": "table",
+            "rawSql": "WITH trade_pnl AS (\n  SELECT \n    strategy_id,\n    CASE \n      WHEN side = 'SELL' THEN filled_price * filled_volume\n      ELSE -filled_price * filled_volume\n    END as pnl\n  FROM trades\n  WHERE $__timeFilter(trade_time) AND status = 'FILLED'\n)\nSELECT \n  strategy_id,\n  COUNT(CASE WHEN pnl > 0 THEN 1 END) * 100.0 / COUNT(*) as win_rate\nFROM trade_pnl\nGROUP BY strategy_id",
+            "refId": "A"
+          }
+        ],
+        "datasource": "PostgreSQL"
+      }
+    ],
+    "time": {
+      "from": "now-7d",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "refresh": "30s"
+  },
+  "overwrite": true
+}

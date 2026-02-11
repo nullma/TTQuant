@@ -1,0 +1,82 @@
+# TTQuant 策略配置文件
+
+# ==================== 网格交易策略 ====================
+[[strategies]]
+name = "grid_trading_btc"
+type = "grid"
+enabled = true  # 设置为 true 启用策略
+symbol = "BTCUSDT"
+exchange = "okx"
+
+[strategies.parameters]
+# 网格参数
+grid_count = 10              # 网格数量
+price_range_percent = 2.0    # 价格范围百分比 (±2%)
+order_amount_usdt = 100      # 每格订单金额 (USDT)
+
+# 风控参数
+max_position_usdt = 5000     # 最大持仓金额
+stop_loss_percent = 5.0      # 止损百分比
+take_profit_percent = 10.0   # 止盈百分比
+
+# ==================== 均线交叉策略 ====================
+[[strategies]]
+name = "ma_cross_eth"
+type = "ma_cross"
+enabled = true
+symbol = "ETHUSDT"
+exchange = "okx"
+
+[strategies.parameters]
+# 均线参数
+fast_period = 5              # 快线周期
+slow_period = 20             # 慢线周期
+timeframe = "1m"             # K线周期
+
+# 交易参数
+order_amount_usdt = 200      # 每次交易金额
+max_position_usdt = 2000     # 最大持仓
+
+# 风控
+stop_loss_percent = 3.0
+take_profit_percent = 6.0
+
+# ==================== 动量突破策略 ====================
+[[strategies]]
+name = "momentum_sol"
+type = "momentum"
+enabled = true
+symbol = "SOLUSDT"
+exchange = "okx"
+
+[strategies.parameters]
+# 动量参数
+lookback_period = 20         # 回看周期
+breakout_threshold = 1.5     # 突破阈值 (标准差倍数)
+volume_threshold = 1.2       # 成交量阈值
+
+# 交易参数
+order_amount_usdt = 150
+max_position_usdt = 1500
+
+# 风控
+stop_loss_percent = 4.0
+take_profit_percent = 8.0
+
+# ==================== 全局配置 ====================
+[global]
+# 交易模式
+trading_mode = "paper"       # paper: 模拟交易, live: 实盘交易
+
+# 风控
+max_total_position_usdt = 10000  # 总持仓上限
+max_daily_loss_usdt = 500        # 单日最大亏损
+max_drawdown_percent = 10.0      # 最大回撤
+
+# 执行
+order_timeout_secs = 30          # 订单超时时间
+retry_count = 3                  # 重试次数
+
+# 日志
+log_level = "info"               # debug, info, warn, error
+log_trades = true                # 记录所有交易

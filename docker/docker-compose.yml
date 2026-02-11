@@ -150,6 +150,53 @@ services:
     networks:
       - ttquant-network
 
+  # ==================== 回测系统 ====================
+  backtest:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.python
+    container_name: ttquant-backtest
+    logging: *default-logging
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    command: python run_backtest.py
+    volumes:
+      - ../config:/app/config:ro
+      - backtest-results:/app/backtest_results
+    networks:
+      - ttquant-network
+    profiles:
+      - backtest
+
+  # ==================== 策略引擎 ====================
+  strategy-engine:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.python
+    container_name: ttquant-strategy-engine
+    restart: always
+    logging: *default-logging
+    environment:
+      EXCHANGE: ${STRATEGY_EXCHANGE:-okx}
+      MD_ENDPOINT: tcp://md-okx:5558
+      TRADE_ENDPOINT: tcp://gateway-okx:5560
+      ORDER_ENDPOINT: tcp://gateway-okx:5559
+      STRATEGY_CONFIG: /app/config/strategies.toml
+      PYTHONUNBUFFERED: "1"
+    depends_on:
+      - md-okx
+      - gateway-okx
+      - timescaledb
+    command: python run_strategy_engine.py
+    volumes:
+      - ../config:/app/config:ro
+    networks:
+      - ttquant-network
+
   # ==================== Python 测试客户端 ====================
   test-client:
     build:
@@ -271,6 +318,7 @@ volumes:
   prometheus-data:
   grafana-data:
   alertmanager-data:
+  backtest-results:
 
 networks:
   ttquant-network:
