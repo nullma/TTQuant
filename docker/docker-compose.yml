@@ -85,7 +85,7 @@ services:
     environment:
       MARKET: okx
       ZMQ_PUB_ENDPOINT: tcp://*:5558
-      DB_URI: postgresql://ttquant:ttquant_local_2024@timescaledb:5432/ttquant_trading
+      DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
       RUST_LOG: info
     depends_on:
       timescaledb:
@@ -138,7 +138,7 @@ services:
       OKX_SECRET_KEY: ${OKX_SECRET_KEY:-}
       OKX_PASSPHRASE: ${OKX_PASSPHRASE:-}
       OKX_TESTNET: "true"
-      DB_URI: postgresql://ttquant:ttquant_local_2024@timescaledb:5432/ttquant_trading
+      DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
       RUST_LOG: info
     depends_on:
       timescaledb:
