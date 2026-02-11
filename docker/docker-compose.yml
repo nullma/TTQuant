@@ -102,6 +102,9 @@ services:
       - ttquant-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
 
   # ==================== 交易网关 ====================
   gateway-binance:
