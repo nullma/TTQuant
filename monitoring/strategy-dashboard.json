@@ -1,0 +1,137 @@
+{
+  "dashboard": {
+    "title": "策略交易监控",
+    "tags": ["trading", "strategy"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "最近1小时订单数（按策略）",
+        "type": "bargauge",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT strategy_id as metric, COUNT(*) as value FROM orders WHERE time > NOW() - INTERVAL '1 hour' GROUP BY strategy_id ORDER BY value DESC",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "displayMode": "gradient",
+          "showUnfilled": true
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 50, "color": "yellow"},
+                {"value": 100, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "买卖订单分布",
+        "type": "piechart",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT side as metric, COUNT(*) as value FROM orders WHERE time > NOW() - INTERVAL '1 hour' GROUP BY side",
+            "format": "table"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "最近订单列表",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 8, "w": 24, "h": 10},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT time, strategy_id, symbol, side, price, volume FROM orders ORDER BY time DESC LIMIT 50",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{"displayName": "time", "desc": true}]
+        }
+      },
+      {
+        "id": 4,
+        "title": "实时价格 - BTCUSDT",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 18, "w": 12, "h": 8},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT time, last_price FROM market_data WHERE symbol = 'BTCUSDT' AND time > NOW() - INTERVAL '1 hour' ORDER BY time",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            },
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "实时价格 - ETHUSDT",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 18, "w": 12, "h": 8},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT time, last_price FROM market_data WHERE symbol = 'ETHUSDT' AND time > NOW() - INTERVAL '1 hour' ORDER BY time",
+            "format": "time_series"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "smooth",
+              "fillOpacity": 10
+            },
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "24小时交易统计",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 26, "w": 24, "h": 4},
+        "targets": [
+          {
+            "refId": "A",
+            "rawSql": "SELECT strategy_id, COUNT(*) as trades FROM orders WHERE time > NOW() - INTERVAL '24 hours' GROUP BY strategy_id ORDER BY trades DESC",
+            "format": "table"
+          }
+        ],
+        "options": {
+          "orientation": "horizontal",
+          "textMode": "value_and_name",
+          "colorMode": "background"
+        }
+      }
+    ]
+  }
+}

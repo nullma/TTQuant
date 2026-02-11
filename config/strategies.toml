@@ -1,10 +1,10 @@
-# TTQuant 策略配置文件
+# TTQuant 策略配置文件 - 优化版本
 
 # ==================== 网格交易策略 ====================
 [[strategies]]
 name = "grid_trading_btc"
 type = "grid"
-enabled = true  # 设置为 true 启用策略
+enabled = true
 symbol = "BTCUSDT"
 exchange = "okx"
 
@@ -19,18 +19,18 @@ max_position_usdt = 5000     # 最大持仓金额
 stop_loss_percent = 5.0      # 止损百分比
 take_profit_percent = 10.0   # 止盈百分比
 
-# ==================== 均线交叉策略 ====================
+# ==================== 均线交叉策略（优化版）====================
 [[strategies]]
 name = "ma_cross_eth"
 type = "ma_cross"
-enabled = true
+enabled = false
 symbol = "ETHUSDT"
 exchange = "okx"
 
 [strategies.parameters]
-# 均线参数
-fast_period = 5              # 快线周期
-slow_period = 20             # 慢线周期
+# 均线参数 - 修改：拉大周期差距，减少假信号
+fast_period = 10             # 快线周期（原5 → 10）
+slow_period = 30             # 慢线周期（原20 → 30）
 timeframe = "1m"             # K线周期
 
 # 交易参数
@@ -80,3 +80,14 @@ retry_count = 3                  # 重试次数
 # 日志
 log_level = "info"               # debug, info, warn, error
 log_trades = true                # 记录所有交易
+
+# ==================== 风控管理 ====================
+[risk_management]
+enabled = true                  # 启用风控
+initial_capital = 100000.0      # 初始资金 $100,000
+stop_loss_pct = 0.02            # 止损 2%
+take_profit_pct = 0.05          # 止盈 5%
+max_position_pct = 0.3          # 单品种最大仓位 30%
+max_total_position_pct = 0.8    # 总仓位限制 80%
+daily_loss_limit = 5000.0       # 每日最大亏损 $5,000
+max_positions = 5               # 最多 5 个持仓

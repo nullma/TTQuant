@@ -128,7 +128,8 @@ def main():
         'trade_endpoint': trade_endpoint,
         'order_endpoint': order_endpoint,
         'symbols': list(symbols),
-        'use_protobuf': True
+        'use_protobuf': True,
+        'risk_management': config.get('risk_management', {})
     }
 
     logger.info(f"Market data endpoints: {md_endpoints}")
