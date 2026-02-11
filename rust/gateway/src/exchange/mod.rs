@@ -6,8 +6,10 @@ use std::pin::Pin;
 use ttquant_common::proto::{Order, Trade};
 
 mod binance;
+mod okx;
 
 use binance::BinanceExchange;
+use okx::OkxExchange;
 
 pub trait Exchange: Send + Sync {
     fn name(&self) -> &str;
@@ -22,6 +24,7 @@ impl ExchangeRouter {
     pub fn new(exchange_name: &str) -> Result<Self> {
         let exchange: Box<dyn Exchange> = match exchange_name.to_lowercase().as_str() {
             "binance" => Box::new(BinanceExchange::new()?),
+            "okx" => Box::new(OkxExchange::new()?),
             _ => return Err(anyhow!("Unsupported exchange: {}", exchange_name)),
         };
 
