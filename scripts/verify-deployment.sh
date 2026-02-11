@@ -23,22 +23,32 @@ echo ""
 
 echo "4. 检查最近1小时的订单数量"
 echo "------------------------------------------"
-docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT COUNT(*) as order_count FROM orders WHERE created_at > NOW() - INTERVAL '1 hour';"
+docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT COUNT(*) as order_count FROM orders WHERE time > NOW() - INTERVAL '1 hour';"
 echo ""
 
 echo "5. 查看最近5条订单"
 echo "------------------------------------------"
-docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT strategy_id, symbol, side, price, volume, status, created_at FROM orders ORDER BY created_at DESC LIMIT 5;"
+docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT strategy_id, symbol, side, price, volume, time FROM orders ORDER BY time DESC LIMIT 5;"
 echo ""
 
-echo "6. 各策略订单统计"
+echo "6. 各策略订单统计（最近24小时）"
 echo "------------------------------------------"
-docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT strategy_id, COUNT(*) as total_orders, SUM(CASE WHEN status='FILLED' THEN 1 ELSE 0 END) as filled_orders FROM orders GROUP BY strategy_id;"
+docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT strategy_id, COUNT(*) as total_orders FROM orders WHERE time > NOW() - INTERVAL '24 hours' GROUP BY strategy_id;"
 echo ""
 
-echo "7. 检查行情数据接收情况（最近1小时）"
+echo "7. 检查成交记录（最近5条）"
 echo "------------------------------------------"
-docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT symbol, exchange, COUNT(*) as tick_count, MIN(local_time) as first_tick, MAX(local_time) as last_tick FROM market_data WHERE local_time > EXTRACT(EPOCH FROM NOW() - INTERVAL '1 hour') * 1000000000 GROUP BY symbol, exchange ORDER BY symbol;"
+docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT strategy_id, symbol, side, filled_price, filled_volume, status, time FROM trades ORDER BY time DESC LIMIT 5;"
+echo ""
+
+echo "8. 策略统计（最近24小时）"
+echo "------------------------------------------"
+docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT * FROM strategy_stats;"
+echo ""
+
+echo "9. 检查行情数据接收情况（最近1小时）"
+echo "------------------------------------------"
+docker exec ttquant-timescaledb psql -U ttquant -d ttquant_trading -c "SELECT symbol, exchange, COUNT(*) as tick_count, MIN(time) as first_tick, MAX(time) as last_tick FROM market_data WHERE time > NOW() - INTERVAL '1 hour' GROUP BY symbol, exchange ORDER BY symbol;"
 echo ""
 
 echo "=========================================="
