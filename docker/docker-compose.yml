@@ -87,8 +87,8 @@ services:
       ZMQ_PUB_ENDPOINT: tcp://*:5558
       DB_URI: postgresql://ttquant:${DB_PASSWORD:-changeme}@timescaledb:5432/ttquant_trading
       RUST_LOG: info
-      # 使用 SOCKS5 代理连接 OKX
-      SOCKS5_PROXY: proxy:1080
+      # 使用 SOCKS5 代理连接 OKX（仅本地需要，服务器留空）
+      SOCKS5_PROXY: ${SOCKS5_PROXY:-}
     depends_on:
       timescaledb:
         condition: service_healthy
