@@ -154,6 +154,59 @@ def decode_trade(data: bytes) -> dict:
     return result
 
 
+def decode_market_data(data: bytes) -> dict:
+    """
+    解码行情数据消息
+
+    message MarketData {
+      string symbol = 1;
+      double last_price = 2;
+      double volume = 3;
+      int64 exchange_time = 4;
+      int64 local_time = 5;
+      string exchange = 6;
+    }
+    """
+    result = {}
+    pos = 0
+
+    while pos < len(data):
+        # 读取 tag
+        tag, pos = _read_varint(data, pos)
+        field_number = tag >> 3
+        wire_type = tag & 0x7
+
+        if wire_type == 0:  # varint
+            value, pos = _read_varint(data, pos)
+            if field_number == 4:
+                result['exchange_time'] = value
+            elif field_number == 5:
+                result['local_time'] = value
+
+        elif wire_type == 1:  # 64-bit
+            value = struct.unpack('<d', data[pos:pos+8])[0]
+            pos += 8
+            if field_number == 2:
+                result['last_price'] = value
+            elif field_number == 3:
+                result['volume'] = value
+
+        elif wire_type == 2:  # length-delimited
+            length, pos = _read_varint(data, pos)
+            value = data[pos:pos+length].decode('utf-8')
+            pos += length
+
+            if field_number == 1:
+                result['symbol'] = value
+            elif field_number == 6:
+                result['exchange'] = value
+
+        else:
+            raise ValueError(f"Unknown wire type: {wire_type}")
+
+    return result
+
+
 def _read_varint(data: bytes, pos: int) -> tuple:
     """读取 varint"""
     result = 0

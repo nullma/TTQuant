@@ -20,7 +20,7 @@ import logging
 
 # 添加 proto 目录到路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from proto.protobuf_codec import encode_order, decode_trade
+from proto.protobuf_codec import encode_order, decode_trade, decode_market_data
 
 logging.basicConfig(
     level=logging.INFO,
@@ -165,8 +165,10 @@ class StrategyEngine:
         """处理行情数据"""
         try:
             topic = self.md_sub.recv_string()
-            data = self.md_sub.recv_string()
-            md_dict = json.loads(data)
+            data_bytes = self.md_sub.recv()  # 接收二进制数据
+
+            # 使用 Protobuf 解码
+            md_dict = decode_market_data(data_bytes)
 
             md = MarketData(
                 symbol=md_dict['symbol'],
