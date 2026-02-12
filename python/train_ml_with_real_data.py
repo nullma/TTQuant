@@ -207,7 +207,23 @@ def train_and_evaluate(features, labels, test_size=0.2):
     )
 
     gb_factor.train(features, y)
-    gb_metrics = gb_factor.evaluate(features, y, split_ratio=test_size)
+
+    # 手动评估 GB
+    X_gb = np.column_stack([features[name] for name in feature_names])
+    X_gb = X_gb[valid_idx]
+    X_gb_train, X_gb_test = X_gb[:n_train], X_gb[n_train:]
+
+    scaler_gb = StandardScaler()
+    X_gb_train_scaled = scaler_gb.fit_transform(X_gb_train)
+    X_gb_test_scaled = scaler_gb.transform(X_gb_test)
+
+    y_train_pred_gb = gb_factor.model.predict(X_gb_train_scaled)
+    y_test_pred_gb = gb_factor.model.predict(X_gb_test_scaled)
+
+    gb_metrics = {
+        'train_accuracy': accuracy_score(y_train, y_train_pred_gb),
+        'test_accuracy': accuracy_score(y_test, y_test_pred_gb),
+    }
 
     logger.info(f"Gradient Boosting Results:")
     logger.info(f"  Train Accuracy: {gb_metrics['train_accuracy']:.4f}")
@@ -237,7 +253,7 @@ def main():
     print("=" * 70)
 
     # 加载数据
-    data_file = 'data/historical/BTCUSDT_1h_365d_simulated.csv'
+    data_file = 'data/historical/BTCUSDT_1h_365d_okx.csv'
     df = load_historical_data(data_file)
 
     print(f"\n数据概览:")

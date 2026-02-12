@@ -1,5 +1,5 @@
 {
-  "model_type": "random_forest",
+  "model_type": "gradient_boosting",
   "feature_names": [
     "open",
     "high",
@@ -28,9 +28,9 @@
   ],
   "train_samples": 7001,
   "test_samples": 1751,
-  "train_accuracy": 0.784887873160977,
-  "test_accuracy": 0.5077098800685322,
+  "train_accuracy": 0.8183116697614626,
+  "test_accuracy": 0.49571673329525984,
   "prediction_horizon": 1,
-  "model_id": "btcusdt_rf_real",
-  "saved_at": "2026-02-12T21:15:01.033866"
+  "model_id": "btcusdt_gb_real",
+  "saved_at": "2026-02-12T21:15:08.483921"
 }
