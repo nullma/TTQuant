@@ -1,0 +1,129 @@
+version: '3.8'
+
+services:
+  # TimescaleDB - 时序数据库
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: ttquant-timescaledb
+    environment:
+      POSTGRES_DB: ttquant_test
+      POSTGRES_USER: ttquant
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-ttquant123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ttquant-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ttquant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus - 监控指标收集
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ttquant-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    networks:
+      - ttquant-network
+    restart: unless-stopped
+
+  # Grafana - 可视化仪表板
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ttquant-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin123}
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./config/grafana/provisioning:/etc/grafana/provisioning
+      - ./config/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - ttquant-network
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+
+  # Python Strategy Engine - 策略引擎
+  strategy-engine:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    container_name: ttquant-strategy-engine
+    environment:
+      PYTHONUNBUFFERED: 1
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: ttquant_test
+      DB_USER: ttquant
+      DB_PASSWORD: ${DB_PASSWORD:-ttquant123}
+      PAPER_TRADING: "true"
+      LOG_LEVEL: info
+    volumes:
+      - ./python:/app
+      - ./config:/app/config
+      - ./logs:/app/logs
+    networks:
+      - ttquant-network
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    command: python strategy_engine.py --config config/test.yaml
+
+  # Risk Monitor - 风险监控
+  risk-monitor:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    container_name: ttquant-risk-monitor
+    environment:
+      PYTHONUNBUFFERED: 1
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: ttquant_test
+      DB_USER: ttquant
+      DB_PASSWORD: ${DB_PASSWORD:-ttquant123}
+      PROMETHEUS_PORT: 8001
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./python:/app
+      - ./config:/app/config
+      - ./logs:/app/logs
+    networks:
+      - ttquant-network
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    command: python risk_monitor.py --port 8001
+
+volumes:
+  timescale_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  ttquant-network:
+    driver: bridge

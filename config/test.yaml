@@ -1,0 +1,82 @@
+# 测试环境配置
+
+environment: test
+paper_trading: true
+
+# 数据库配置
+database:
+  host: ${DB_HOST:-timescaledb}
+  port: ${DB_PORT:-5432}
+  database: ${DB_NAME:-ttquant_test}
+  user: ${DB_USER:-ttquant}
+  password: ${DB_PASSWORD:-ttquant123}
+  pool_size: 10
+  max_overflow: 20
+
+# 交易所配置
+exchanges:
+  okx:
+    enabled: true
+    testnet: false  # OKX 没有测试网，使用主网但纸面交易
+    api_key: ${OKX_API_KEY:-}
+    api_secret: ${OKX_API_SECRET:-}
+    passphrase: ${OKX_PASSPHRASE:-}
+
+  binance:
+    enabled: false  # 美国节点无法访问
+    testnet: true
+    api_key: ${BINANCE_TESTNET_KEY:-}
+    api_secret: ${BINANCE_TESTNET_SECRET:-}
+
+# 策略配置
+strategies:
+  - id: ema_cross_test
+    type: ema_cross
+    symbol: BTC-USDT
+    exchange: okx
+    enabled: true
+    params:
+      fast_period: 12
+      slow_period: 26
+      position_size: 0.01  # 小仓位测试
+      stop_loss_pct: 0.02
+      take_profit_pct: 0.04
+
+  - id: ml_strategy_test
+    type: ml_strategy
+    symbol: BTC-USDT
+    exchange: okx
+    enabled: true
+    params:
+      model_path: models/btcusdt_rf_real
+      confidence_threshold: 0.6
+      position_size: 0.01
+      stop_loss_pct: 0.03
+      take_profit_pct: 0.05
+
+# 风险管理
+risk_limits:
+  max_position_size: 0.1  # 最大 10% 仓位
+  max_daily_loss: 1000    # 最大日亏损 $1000
+  max_drawdown: 0.05      # 最大回撤 5%
+  max_leverage: 1.0       # 不使用杠杆
+
+# 监控配置
+monitoring:
+  prometheus_port: 8001
+  log_level: info
+  metrics_interval: 5  # 秒
+
+# ZMQ 配置
+zmq:
+  market_data_pub: tcp://*:5555
+  market_data_sub: tcp://market-data:5555
+  order_gateway_req: tcp://order-gateway:5556
+
+# 日志配置
+logging:
+  level: INFO
+  format: json
+  file: logs/ttquant_test.log
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
