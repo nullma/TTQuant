@@ -1,5 +1,6 @@
 {
-  "model_type": "gradient_boosting",
+  "train_accuracy": 0.9997143265247822,
+  "test_accuracy": 0.9988577955454027,
   "feature_names": [
     "open",
     "high",
@@ -26,11 +27,9 @@
     "momentum_5",
     "momentum_10"
   ],
-  "train_samples": 7001,
-  "test_samples": 1751,
-  "train_accuracy": 0.8183116697614626,
-  "test_accuracy": 0.49571673329525984,
-  "prediction_horizon": 1,
+  "training_date": "2026-02-13T04:10:21.748480",
+  "data_file": "data/historical/BTCUSDT_1h_365d_okx.csv",
+  "n_samples": 8752,
   "model_id": "btcusdt_gb_real",
-  "saved_at": "2026-02-12T21:15:08.483921"
+  "saved_at": "2026-02-13T04:10:21.749986"
 }

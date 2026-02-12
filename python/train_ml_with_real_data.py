@@ -110,8 +110,9 @@ def prepare_training_data(df, symbol='BTCUSDT', lookback=50):
 
     logger.info(f"Extracted {len(features)} features")
 
-    # 创建标签（未来收益）
-    future_returns = np.concatenate([np.diff(prices) / prices[:-1], [0]])
+    # 创建标签（未来收益）- 修复 Look-ahead Bias
+    # 使用下一根K线的收益率作为标签，而不是当前K线
+    future_returns = np.concatenate([[0], np.diff(prices) / prices[:-1]])
     labels = (future_returns > 0).astype(int)  # 1 = 上涨, 0 = 下跌
 
     logger.info(f"Created labels: {np.sum(labels)} up, {len(labels) - np.sum(labels)} down")
@@ -178,6 +179,9 @@ def train_and_evaluate(features, labels, test_size=0.2):
     y_train_pred = rf_factor.model.predict(X_rf_train_scaled)
     y_test_pred = rf_factor.model.predict(X_rf_test_scaled)
 
+    # 保存 scaler 到 rf_factor
+    rf_factor.scaler = scaler_rf
+
     rf_metrics = {
         'train_accuracy': accuracy_score(y_train, y_train_pred),
         'test_accuracy': accuracy_score(y_test, y_test_pred),
@@ -219,6 +223,9 @@ def train_and_evaluate(features, labels, test_size=0.2):
 
     y_train_pred_gb = gb_factor.model.predict(X_gb_train_scaled)
     y_test_pred_gb = gb_factor.model.predict(X_gb_test_scaled)
+
+    # 保存 scaler 到 gb_factor
+    gb_factor.scaler = scaler_gb
 
     gb_metrics = {
         'train_accuracy': accuracy_score(y_train, y_train_pred_gb),
@@ -267,10 +274,10 @@ def main():
     # 训练和评估
     best_model, best_metrics, all_metrics = train_and_evaluate(features, labels, test_size=0.2)
 
-    # 保存最佳模型
-    model_manager = ModelManager(models_dir='models')
+    # 保存最佳模型（包含 scaler）
+    model_manager = ModelManager(model_dir='models')
     model_path = model_manager.save_model(
-        model=best_model.model,
+        model={'model': best_model.model, 'scaler': best_model.scaler},
         model_id=best_model.factor_id,
         metadata={
             'train_accuracy': best_metrics['train_accuracy'],
