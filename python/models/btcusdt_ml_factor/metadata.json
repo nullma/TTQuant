@@ -1,0 +1,18 @@
+{
+  "model_type": "random_forest",
+  "feature_names": [
+    "returns",
+    "volatility",
+    "rsi_14",
+    "macd",
+    "bb_position",
+    "volume_ratio"
+  ],
+  "train_samples": 40,
+  "test_samples": 10,
+  "train_accuracy": 0.625,
+  "test_accuracy": 0.4,
+  "prediction_horizon": 1,
+  "model_id": "btcusdt_ml_factor",
+  "saved_at": "2026-02-12T11:59:41.771736"
+}

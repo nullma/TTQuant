@@ -1,0 +1,31 @@
+{
+  "dashboard": {
+    "title": "OKX 数据测试",
+    "tags": ["test"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 0,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "最新价格（表格）",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 0, "w": 24, "h": 10},
+        "datasource": {
+          "type": "grafana-postgresql-datasource",
+          "uid": "afcwwg2rl7w8wd"
+        },
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT symbol, last_price, volume, time FROM market_data WHERE exchange = 'okx' ORDER BY time DESC LIMIT 20"
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

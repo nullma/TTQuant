@@ -2,12 +2,12 @@
 # 告警管理器配置
 
 global:
-  # SMTP 配置（用于邮件告警）
-  smtp_smarthost: 'smtp.gmail.com:587'
-  smtp_from: 'ttquant-alerts@example.com'
-  smtp_auth_username: 'your-email@example.com'
-  smtp_auth_password: 'your-app-password'
-  smtp_require_tls: true
+  # SMTP 配置已禁用 - 防止发送垃圾邮件
+  # smtp_smarthost: 'smtp.gmail.com:587'
+  # smtp_from: 'ttquant-alerts@example.com'
+  # smtp_auth_username: 'your-email@example.com'
+  # smtp_auth_password: 'your-app-password'
+  # smtp_require_tls: true
 
   # Slack 配置（可选）
   # slack_api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
@@ -55,53 +55,30 @@ route:
 
 # 告警接收者配置
 receivers:
-  # 默认接收者
+  # 默认接收者 - 邮件已禁用
   - name: 'default'
-    email_configs:
-      - to: 'ops-team@example.com'
-        headers:
-          Subject: '[TTQuant] Alert: {{ .GroupLabels.alertname }}'
-        html: |
-          <h2>TTQuant Alert</h2>
-          <p><strong>Alert:</strong> {{ .GroupLabels.alertname }}</p>
-          <p><strong>Severity:</strong> {{ .CommonLabels.severity }}</p>
-          <p><strong>Summary:</strong> {{ .CommonAnnotations.summary }}</p>
-          <p><strong>Description:</strong> {{ .CommonAnnotations.description }}</p>
-          <p><strong>Time:</strong> {{ .StartsAt }}</p>
+    # email_configs:
+    #   - to: 'ops-team@example.com'
 
-  # 严重告警接收者
+  # 严重告警接收者 - 邮件已禁用
   - name: 'critical-alerts'
-    email_configs:
-      - to: 'critical-alerts@example.com'
-        send_resolved: true
-        headers:
-          Subject: '[CRITICAL] TTQuant Alert: {{ .GroupLabels.alertname }}'
-    # Slack 通知（可选）
-    # slack_configs:
-    #   - channel: '#critical-alerts'
-    #     title: 'CRITICAL: {{ .GroupLabels.alertname }}'
-    #     text: '{{ .CommonAnnotations.description }}'
+    # email_configs:
+    #   - to: 'critical-alerts@example.com'
 
-  # 行情数据团队
+  # 行情数据团队 - 邮件已禁用
   - name: 'market-data-team'
-    email_configs:
-      - to: 'market-data-team@example.com'
-        headers:
-          Subject: '[Market Data] {{ .GroupLabels.alertname }}'
+    # email_configs:
+    #   - to: 'market-data-team@example.com'
 
-  # 交易团队
+  # 交易团队 - 邮件已禁用
   - name: 'trading-team'
-    email_configs:
-      - to: 'trading-team@example.com'
-        headers:
-          Subject: '[Trading] {{ .GroupLabels.alertname }}'
+    # email_configs:
+    #   - to: 'trading-team@example.com'
 
-  # 策略团队
+  # 策略团队 - 邮件已禁用
   - name: 'strategy-team'
-    email_configs:
-      - to: 'strategy-team@example.com'
-        headers:
-          Subject: '[Strategy] {{ .GroupLabels.alertname }}'
+    # email_configs:
+    #   - to: 'strategy-team@example.com'
 
 # 告警抑制规则
 inhibit_rules:

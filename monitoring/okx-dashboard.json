@@ -1,0 +1,196 @@
+{
+  "dashboard": {
+    "title": "OKX 实时行情",
+    "tags": ["okx", "market-data"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "5s",
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "当前价格",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+        "targets": [
+          {
+            "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+            "rawSql": "SELECT DISTINCT ON (symbol) symbol, last_price FROM market_data WHERE exchange = 'okx' ORDER BY symbol, time DESC",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "decimals": 2
+          },
+          "overrides": [
+            {
+              "matcher": {"id": "byName", "options": "symbol"},
+              "properties": [{"id": "custom.hidden", "value": false}]
+            }
+          ]
+        }
+      },
+      {
+        "id": 2,
+        "title": "BTC/USDT 价格走势",
+        "type": "timeseries",
+        "gridPos": {"x": 6, "y": 0, "w": 18, "h": 8},
+        "targets": [
+          {
+            "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+            "rawSql": "SELECT time, last_price FROM market_data WHERE exchange = 'okx' AND symbol = 'BTCUSDT' AND time > NOW() - INTERVAL '15 minutes' ORDER BY time",
+            "format": "time_series",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "ETH/USDT 价格走势",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+            "rawSql": "SELECT time, last_price FROM market_data WHERE exchange = 'okx' AND symbol = 'ETHUSDT' AND time > NOW() - INTERVAL '15 minutes' ORDER BY time",
+            "format": "time_series",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "SOL/USDT 价格走势",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+            "rawSql": "SELECT time, last_price FROM market_data WHERE exchange = 'okx' AND symbol = 'SOLUSDT' AND time > NOW() - INTERVAL '15 minutes' ORDER BY time",
+            "format": "time_series",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "currencyUSD",
+            "custom": {
+              "lineWidth": 2,
+              "fillOpacity": 10
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "交易量统计 (最近1分钟)",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 6},
+        "targets": [
+          {
+            "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+            "rawSql": "SELECT symbol, COUNT(*) as trades, ROUND(SUM(volume)::numeric, 4) as total_volume, ROUND(MIN(last_price)::numeric, 2) as low, ROUND(MAX(last_price)::numeric, 2) as high FROM market_data WHERE exchange = 'okx' AND time > NOW() - INTERVAL '1 minute' GROUP BY symbol ORDER BY trades DESC",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "symbol": "交易对",
+                "trades": "交易笔数",
+                "total_volume": "总交易量",
+                "low": "最低价",
+                "high": "最高价"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "数据采集统计",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 6},
+        "targets": [
+          {
+            "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+            "rawSql": "SELECT symbol, COUNT(*) as total_records FROM market_data WHERE exchange = 'okx' GROUP BY symbol ORDER BY total_records DESC",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "实时价格表",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 22, "w": 24, "h": 6},
+        "targets": [
+          {
+            "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+            "rawSql": "SELECT DISTINCT ON (symbol) symbol, last_price, volume, time FROM market_data WHERE exchange = 'okx' ORDER BY symbol, time DESC",
+            "format": "table",
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "renameByName": {
+                "symbol": "交易对",
+                "last_price": "最新价格",
+                "volume": "交易量",
+                "time": "更新时间"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "overwrite": true
+}

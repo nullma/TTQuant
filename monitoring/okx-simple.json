@@ -1,0 +1,123 @@
+{
+  "dashboard": {
+    "title": "OKX 行情数据",
+    "tags": ["okx"],
+    "timezone": "browser",
+    "schemaVersion": 39,
+    "version": 0,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "BTC 价格",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "time_series",
+            "rawQuery": true,
+            "rawSql": "SELECT\n  time AS \"time\",\n  last_price\nFROM market_data\nWHERE\n  exchange = 'okx' AND\n  symbol = 'BTCUSDT' AND\n  $__timeFilter(time)\nORDER BY time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "fillOpacity": 0,
+              "showPoints": "never"
+            },
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "ETH 价格",
+        "type": "timeseries",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "time_series",
+            "rawQuery": true,
+            "rawSql": "SELECT\n  time AS \"time\",\n  last_price\nFROM market_data\nWHERE\n  exchange = 'okx' AND\n  symbol = 'ETHUSDT' AND\n  $__timeFilter(time)\nORDER BY time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "fillOpacity": 0,
+              "showPoints": "never"
+            },
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "SOL 价格",
+        "type": "timeseries",
+        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+        "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "time_series",
+            "rawQuery": true,
+            "rawSql": "SELECT\n  time AS \"time\",\n  last_price\nFROM market_data\nWHERE\n  exchange = 'okx' AND\n  symbol = 'SOLUSDT' AND\n  $__timeFilter(time)\nORDER BY time"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "custom": {
+              "drawStyle": "line",
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "fillOpacity": 0,
+              "showPoints": "never"
+            },
+            "unit": "currencyUSD"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "数据统计",
+        "type": "stat",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "datasource": {"type": "postgres", "uid": "afcwwg2rl7w8wd"},
+        "targets": [
+          {
+            "refId": "A",
+            "format": "table",
+            "rawQuery": true,
+            "rawSql": "SELECT symbol, COUNT(*) as value FROM market_data WHERE exchange = 'okx' GROUP BY symbol"
+          }
+        ],
+        "options": {
+          "reduceOptions": {
+            "values": false,
+            "calcs": ["lastNotNull"]
+          },
+          "orientation": "auto",
+          "textMode": "value_and_name",
+          "colorMode": "value",
+          "graphMode": "area"
+        }
+      }
+    ],
+    "time": {
+      "from": "now-15m",
+      "to": "now"
+    }
+  },
+  "overwrite": true
+}

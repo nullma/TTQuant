@@ -1,0 +1,221 @@
+{
+  "dashboard": {
+    "title": "TTQuant 系统监控",
+    "tags": ["ttquant", "trading", "market-data"],
+    "timezone": "browser",
+    "schemaVersion": 16,
+    "version": 0,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "OKX 行情数据接收速率",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(market_data_messages_received_total{market=\"okx\"}[1m])",
+            "legendFormat": "{{symbol}} - 接收速率",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "消息/秒"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "数据库写入速率",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(market_data_db_inserts_total[1m])",
+            "legendFormat": "{{market}} - 写入速率",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "记录/秒"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "WebSocket 连接状态",
+        "type": "stat",
+        "gridPos": {"x": 0, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "market_data_websocket_connected",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "none",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "0", "text": "断开"},
+              {"type": "value", "value": "1", "text": "已连接"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "活跃交易对数量",
+        "type": "stat",
+        "gridPos": {"x": 6, "y": 8, "w": 6, "h": 4},
+        "targets": [
+          {
+            "expr": "count(market_data_last_price)",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        }
+      },
+      {
+        "id": 5,
+        "title": "系统内存使用",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "{{job}} - 内存 (MB)",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "MB"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 6,
+        "title": "最新价格 (OKX)",
+        "type": "table",
+        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "market_data_last_price{market=\"okx\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "instance": true,
+                "job": true,
+                "market": true
+              },
+              "indexByName": {},
+              "renameByName": {
+                "symbol": "交易对",
+                "Value": "最新价格"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "title": "24小时交易量 (OKX)",
+        "type": "table",
+        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "market_data_volume_24h{market=\"okx\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {
+                "Time": true,
+                "__name__": true,
+                "instance": true,
+                "job": true,
+                "market": true
+              },
+              "renameByName": {
+                "symbol": "交易对",
+                "Value": "24h交易量"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "数据库连接池状态",
+        "type": "graph",
+        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "pg_stat_activity_count",
+            "legendFormat": "活跃连接数",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "title": "错误率",
+        "type": "graph",
+        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+        "targets": [
+          {
+            "expr": "rate(market_data_errors_total[5m])",
+            "legendFormat": "{{market}} - 错误/秒",
+            "refId": "A"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "evaluator": {"params": [0.1], "type": "gt"},
+              "operator": {"type": "and"},
+              "query": {"params": ["A", "5m", "now"]},
+              "reducer": {"params": [], "type": "avg"},
+              "type": "query"
+            }
+          ],
+          "executionErrorState": "alerting",
+          "frequency": "1m",
+          "handler": 1,
+          "name": "高错误率告警",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}
