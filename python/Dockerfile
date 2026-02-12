@@ -3,13 +3,15 @@ FROM python:3.11-slim
 # 设置工作目录
 WORKDIR /app
 
-# 安装系统依赖（添加重试和镜像源）
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
+# 使用阿里云镜像源加速（适用于国内网络）
+RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources || \
+    sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list || true
+
+# 安装系统依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
-    || (sleep 10 && apt-get update && apt-get install -y --no-install-recommends gcc g++ libpq-dev) \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件
