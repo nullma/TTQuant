@@ -3,11 +3,13 @@ FROM python:3.11-slim
 # 设置工作目录
 WORKDIR /app
 
-# 安装系统依赖
-RUN apt-get update && apt-get install -y \
+# 安装系统依赖（添加重试和镜像源）
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
+    || (sleep 10 && apt-get update && apt-get install -y --no-install-recommends gcc g++ libpq-dev) \
     && rm -rf /var/lib/apt/lists/*
 
 # 复制依赖文件
