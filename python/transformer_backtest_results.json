@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-02-14T12:40:55.895387",
+  "model": "Qlib Transformer",
+  "data_file": "data/historical/BTCUSDT_1h_365d_okx.csv",
+  "test_samples": 1545,
+  "evaluation_metrics": {
+    "ic": -0.026581120479632254,
+    "rank_ic": 0.04625519320739114,
+    "ir": -0.5316224085294002,
+    "quantile_analysis": {
+      "quantile_returns": [
+        -0.00040972320130094886,
+        -0.0006025542388670146,
+        -0.0001667310280026868,
+        4.5172775571700186e-05,
+        0.00020380101341288537
+      ],
+      "quantile_counts": [
+        309,
+        309,
+        309,
+        309,
+        309
+      ],
+      "top_quantile_return": 0.00020380101341288537,
+      "bottom_quantile_return": -0.00040972320130094886,
+      "long_short_return": 0.0006135242292657495
+    }
+  },
+  "trading_metrics": {
+    "total_return": 0.06192081416164001,
+    "annual_return": 0.06192081416164001,
+    "sharpe_ratio": 0.24859855950980414,
+    "max_drawdown": -5.975363995875068,
+    "win_rate": 57.14285714285714,
+    "total_trades": 28
+  }
+}
